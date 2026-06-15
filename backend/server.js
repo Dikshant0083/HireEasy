@@ -22,10 +22,25 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5500;
 
+// ── CORS origin function (used by both Express and Socket.IO) ─────────────────
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+function corsOrigin(origin, callback) {
+  if (!origin) return callback(null, true);                        // curl/Postman
+  if (origin.startsWith('http://localhost')) return callback(null, true); // dev
+  if (origin.endsWith('.vercel.app')) return callback(null, true); // all Vercel URLs
+  if (allowedOrigins.includes(origin)) return callback(null, true);
+  callback(new Error(`CORS blocked: ${origin}`));
+}
+
 // ── Socket.IO ─────────────────────────────────────────────────────────────────
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: corsOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -60,15 +75,7 @@ app.use(helmet({
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   crossOriginResourcePolicy: false,
 }));
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://hire-easy-in6xgedvv-dixus-projects.vercel.app',
-    process.env.FRONTEND_URL,
-  ].filter(Boolean),
-  credentials: true,
-}));
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
