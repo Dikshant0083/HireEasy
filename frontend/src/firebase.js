@@ -3,6 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -27,8 +29,21 @@ export const googleProvider = new GoogleAuthProvider();
 
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
+// Use redirect on production (avoids popup-blocked errors), popup on localhost
+export async function signInWithGoogle() {
+  const isLocalhost = window.location.hostname === 'localhost';
+  if (isLocalhost) {
+    return signInWithPopup(auth, googleProvider);
+  } else {
+    await signInWithRedirect(auth, googleProvider);
+    return null; // redirect will reload the page
+  }
+}
+
 export {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,

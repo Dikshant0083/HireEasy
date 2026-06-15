@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  auth, googleProvider, signInWithPopup, signInWithEmailAndPassword,
+  auth, signInWithGoogle, getRedirectResult, signInWithEmailAndPassword,
 } from '../firebase';
 import { setUser } from '../store/authSlice';
 import { authAPI } from '../services/api';
@@ -83,14 +83,33 @@ export default function Login() {
     }
   };
 
+  // Handle Google redirect result (fires after redirect-based sign-in returns)
+  useEffect(() => {
+    getRedirectResult(auth).then(async (result) => {
+      if (!result?.user) return;
+      try {
+        const user = await syncUser(result.user);
+        dispatch(setUser(user));
+        navigate(dest, { replace: true });
+      } catch (err) {
+        setError(err.message || 'Google sign-in failed');
+      }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleGoogle = async () => {
     setGoogleLoading(true);
     setError('');
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = await syncUser(result.user);
-      dispatch(setUser(user));
-      navigate(dest, { replace: true });
+      const result = await signInWithGoogle(); // popup on localhost, redirect on prod
+      if (result?.user) {
+        // popup path (localhost)
+        const user = await syncUser(result.user);
+        dispatch(setUser(user));
+        navigate(dest, { replace: true });
+      }
+      // redirect path: page will reload, getRedirectResult above handles it
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError(err.message || 'Google sign-in failed');

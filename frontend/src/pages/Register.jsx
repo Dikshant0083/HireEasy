@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
-  auth, googleProvider, signInWithPopup,
+  auth, signInWithGoogle, getRedirectResult,
   createUserWithEmailAndPassword, updateProfile,
 } from '../firebase';
 import { setUser } from '../store/authSlice';
@@ -112,21 +112,42 @@ export default function Register() {
     }
   };
 
+  // Handle redirect result after Google redirect sign-in returns
+  useEffect(() => {
+    getRedirectResult(auth).then(async (result) => {
+      if (!result?.user) return;
+      try {
+        const user = await syncToBackend(result.user, {
+          name: result.user.displayName,
+          provider: 'google',
+        });
+        dispatch(setUser(user));
+        navigate('/dashboard');
+      } catch (err) {
+        setError(err.message || 'Google sign-in failed');
+      }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleGoogleRegister = async () => {
     setGoogleLoading(true);
     setError('');
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = await syncToBackend(result.user, {
-        name: result.user.displayName,
-        phone: form.phone,
-        course: form.course,
-        degree: form.degree,
-        cgpa: form.cgpa,
-        provider: 'google',
-      });
-      dispatch(setUser(user));
-      navigate('/dashboard');
+      const result = await signInWithGoogle(); // popup on localhost, redirect on prod
+      if (result?.user) {
+        const user = await syncToBackend(result.user, {
+          name: result.user.displayName,
+          phone: form.phone,
+          course: form.course,
+          degree: form.degree,
+          cgpa: form.cgpa,
+          provider: 'google',
+        });
+        dispatch(setUser(user));
+        navigate('/dashboard');
+      }
+      // redirect path: page reloads, getRedirectResult above handles it
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError(err.message || 'Google sign-in failed');
