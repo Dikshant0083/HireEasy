@@ -1,0 +1,6 @@
+title,company,description,location,salary,job_type,apply_url,tags,type,is_remote
+Software Engineer Intern,Google LLC,"Work on real projects alongside experienced engineers. You'll contribute to Google's core products and infrastructure.","Bangalore, India","₹80,000/month",internship,https://careers.google.com,"Python,JavaScript,Data Structures",internship,false
+Full Stack Developer,Startup India,"Build end-to-end features for our SaaS product. React frontend and Node.js backend.","Remote","₹15 LPA",full_time,https://startup.example.com,"React,Node.js,MongoDB,REST API",job,true
+Merit Scholarship 2024,AICTE,"All India Council for Technical Education merit scholarship for engineering students. Based on academic performance.","India","₹25,000/year",scholarship,https://scholarships.gov.in,"Engineering,Merit,STEM",scholarship,false
+Data Science Intern,Analytics Corp,"Analyze large datasets to generate business insights. Work with Python, SQL and ML models.","Hyderabad","₹50,000/month",internship,https://analytics.example.com,"Python,SQL,Machine Learning,Pandas",internship,false
+Backend Engineer,FinTech Co,"Design and build scalable microservices for financial applications. Strong system design skills required.","Mumbai","₹20-30 LPA",full_time,https://fintech.example.com,"Java,Spring Boot,Microservices,Kafka",job,false
