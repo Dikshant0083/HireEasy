@@ -127,7 +127,6 @@ export default function Register() {
         setError(err.message || 'Google sign-in failed');
       }
     }).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleGoogleRegister = async () => {
