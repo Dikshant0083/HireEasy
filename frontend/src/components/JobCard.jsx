@@ -40,27 +40,30 @@ function ScoreRing({ score }) {
 }
 
 function CompanyAvatar({ company, logo }) {
-  if (logo) {
-    return (
-      <img
-        src={logo}
-        alt={company}
-        className="w-10 h-10 rounded-lg object-contain bg-white/5 border border-white/10 p-1"
-        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-      />
-    );
-  }
+  const [imgError, setImgError] = React.useState(false);
+
   const initial = (company || 'C')[0].toUpperCase();
   const colors = ['#7c3aed', '#db2777', '#2563eb', '#059669', '#d97706', '#dc2626'];
   const color = colors[initial.charCodeAt(0) % colors.length];
 
-  return (
+  const fallback = (
     <div
       className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
       style={{ background: color }}
     >
       {initial}
     </div>
+  );
+
+  if (!logo || imgError) return fallback;
+
+  return (
+    <img
+      src={logo}
+      alt={company}
+      className="w-10 h-10 rounded-lg object-contain bg-white/5 border border-white/10 p-1 flex-shrink-0"
+      onError={() => setImgError(true)}
+    />
   );
 }
 
