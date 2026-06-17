@@ -41,13 +41,7 @@ const isLocalhost = () =>
  *   Chrome blocks popups from third-party origins; redirect is 100% reliable.
  */
 export async function signInWithGoogle() {
-  if (isLocalhost()) {
-    // Dev: popup is fastest
-    return signInWithPopup(auth, googleProvider);
-  }
-  // Production: always use redirect — Chrome-safe, no popup needed
-  await signInWithRedirect(auth, googleProvider);
-  return null; // page will reload; getRedirectResult() handles the response
+  return signInWithPopup(auth, googleProvider);
 }
 
 export {
