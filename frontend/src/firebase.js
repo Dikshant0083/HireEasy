@@ -29,29 +29,25 @@ export const googleProvider = new GoogleAuthProvider();
 
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
+const isLocalhost = () =>
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1');
+
 /**
  * Sign in with Google.
- * - Tries popup first (works on most browsers when triggered by user click).
- * - If popup is blocked, automatically falls back to redirect.
+ * - localhost → popup (fast for development)
+ * - production → redirect (works on ALL browsers including Chrome)
+ *   Chrome blocks popups from third-party origins; redirect is 100% reliable.
  */
 export async function signInWithGoogle() {
-  try {
-    // Always try popup first — works when called directly from a user click
-    const result = await signInWithPopup(auth, googleProvider);
-    return result;
-  } catch (err) {
-    if (
-      err.code === 'auth/popup-blocked' ||
-      err.code === 'auth/popup-cancelled-by-user' ||
-      err.code === 'auth/cancelled-popup-request'
-    ) {
-      // Popup was blocked — fall back to redirect
-      console.log('Popup blocked, switching to redirect...');
-      await signInWithRedirect(auth, googleProvider);
-      return null; // page will reload
-    }
-    throw err; // re-throw other errors
+  if (isLocalhost()) {
+    // Dev: popup is fastest
+    return signInWithPopup(auth, googleProvider);
   }
+  // Production: always use redirect — Chrome-safe, no popup needed
+  await signInWithRedirect(auth, googleProvider);
+  return null; // page will reload; getRedirectResult() handles the response
 }
 
 export {
