@@ -502,8 +502,12 @@ export default function Dashboard() {
                     <Mail size={14} /> Send Test Email Now
                   </button>
                   {testEmailMsg && (
-                    <p className={`flex items-center justify-center gap-1 text-[10px] text-center mt-2 ${testEmailMsg.includes('✅') ? 'text-green-400' : 'text-red-400'}`}>
-                      {testEmailMsg.includes('✅') ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                    <p className={`flex items-center justify-center gap-1 text-[10px] text-center mt-2 ${
+                      testEmailMsg === 'Sending...' ? 'text-gray-400' :
+                      testEmailMsg.includes('✅') ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {testEmailMsg === 'Sending...' ? null :
+                       testEmailMsg.includes('✅') ? <CheckCircle size={12} /> : <XCircle size={12} />}
                       {testEmailMsg.replace('✅', '').replace('❌', '')}
                     </p>
                   )}
