@@ -6,7 +6,7 @@ import { userAPI, applicationsAPI, jobsAPI, alertsAPI } from '../services/api';
 import { 
   Briefcase, CheckCircle, Bookmark, Brain, Edit2, AlertTriangle, Save, 
   GraduationCap, Award, User, ClipboardList, Zap, FileText, Upload, 
-  Bell, Mail, Sunrise, Sun, Moon, File, MailWarning, MapPin, X
+  Bell, Mail, Sunrise, Sun, Moon, File, MailWarning, MapPin, X, XCircle
 } from 'lucide-react';
 
 const COURSES = ['B.Tech','M.Tech','BCA','MCA','B.Sc','M.Sc','MBA','B.Com','B.E','M.E','Ph.D','Diploma','Other'];
@@ -93,19 +93,19 @@ function ProfileModal({ user, onClose, onSave }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-gray-400 mb-1.5 font-medium">Course</label>
-              <select value={form.course} onChange={e => setForm({...form, course: e.target.value})}
-                className="input-field">
-                <option value="">Select Course</option>
-                {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <input list="courses" value={form.course} onChange={e => setForm({...form, course: e.target.value})}
+                className="input-field" placeholder="Select or type..." />
+              <datalist id="courses">
+                {COURSES.map(c => <option key={c} value={c} />)}
+              </datalist>
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1.5 font-medium">Branch</label>
-              <select value={form.degree} onChange={e => setForm({...form, degree: e.target.value})}
-                className="input-field">
-                <option value="">Select Branch</option>
-                {DEGREES.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <label className="block text-xs text-gray-400 mb-1.5 font-medium">Branch/Degree</label>
+              <input list="degrees" value={form.degree} onChange={e => setForm({...form, degree: e.target.value})}
+                className="input-field" placeholder="Select or type..." />
+              <datalist id="degrees">
+                {DEGREES.map(d => <option key={d} value={d} />)}
+              </datalist>
             </div>
           </div>
           <div>

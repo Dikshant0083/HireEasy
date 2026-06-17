@@ -85,6 +85,9 @@ export default function Register() {
     if (form.password.length < 6) {
       return setError('Password must be at least 6 characters');
     }
+    if (!/(?=.*[A-Z])(?=.*[!@#$%^&*])/.test(form.password)) {
+      return setError('Password must contain at least one uppercase letter and one special character');
+    }
     setLoading(true);
     setError('');
     try {
@@ -160,6 +163,15 @@ export default function Register() {
     e.preventDefault();
     if (!form.name || !form.email || !form.phone || !form.password) {
       return setError('Please fill all required fields');
+    }
+    if (form.password !== form.confirmPassword) {
+      return setError('Passwords do not match');
+    }
+    if (form.password.length < 6) {
+      return setError('Password must be at least 6 characters');
+    }
+    if (!/(?=.*[A-Z])(?=.*[!@#$%^&*])/.test(form.password)) {
+      return setError('Password must contain at least one uppercase letter and one special character');
     }
     setError('');
     setStep(2);
@@ -253,17 +265,17 @@ export default function Register() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-gray-400 mb-1.5 font-medium">Course *</label>
-                  <select name="course" required value={form.course} onChange={handleChange} className="input-field">
-                    <option value="">Select Course</option>
-                    {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <input list="courses" name="course" required value={form.course} onChange={handleChange} className="input-field" placeholder="Select or type..." />
+                  <datalist id="courses">
+                    {COURSES.map(c => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1.5 font-medium">Branch/Degree *</label>
-                  <select name="degree" required value={form.degree} onChange={handleChange} className="input-field">
-                    <option value="">Select Branch</option>
-                    {DEGREES.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
+                  <input list="degrees" name="degree" required value={form.degree} onChange={handleChange} className="input-field" placeholder="Select or type..." />
+                  <datalist id="degrees">
+                    {DEGREES.map(d => <option key={d} value={d} />)}
+                  </datalist>
                 </div>
               </div>
 
