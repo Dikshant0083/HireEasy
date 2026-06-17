@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { setUser } from '../store/authSlice';
-import { userAPI, applicationsAPI, jobsAPI } from '../services/api';
+import { userAPI, applicationsAPI, jobsAPI, alertsAPI } from '../services/api';
 
 const COURSES = ['B.Tech','M.Tech','BCA','MCA','B.Sc','M.Sc','MBA','B.Com','B.E','M.E','Ph.D','Diploma','Other'];
 const DEGREES = ['CSE','ECE','EEE','Mechanical','Civil','Chemical','IT','Data Science','AI & ML','Biotechnology','Physics','Mathematics','Commerce','Management','Other'];
@@ -178,6 +178,33 @@ export default function Dashboard() {
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeLoading, setResumeLoading] = useState(false);
   const [resumeMsg, setResumeMsg] = useState('');
+
+  const [alertLoading, setAlertLoading] = useState(false);
+  const [testEmailMsg, setTestEmailMsg] = useState('');
+
+  const toggleEmailAlerts = async () => {
+    setAlertLoading(true);
+    try {
+      const isEnabled = user?.alert_preferences?.email_alerts;
+      const res = await alertsAPI.updatePreferences({ email_alerts: !isEnabled, whatsapp_alerts: user?.alert_preferences?.whatsapp_alerts });
+      dispatch(setUser({ ...user, alert_preferences: res.data.preferences }));
+    } catch (err) {
+      console.error('Toggle failed:', err);
+    } finally {
+      setAlertLoading(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    setTestEmailMsg('Sending...');
+    try {
+      const res = await alertsAPI.testEmail();
+      setTestEmailMsg(`✅ ${res.data.message}`);
+      setTimeout(() => setTestEmailMsg(''), 5000);
+    } catch (err) {
+      setTestEmailMsg(`❌ ${err.response?.data?.message || 'Failed'}`);
+    }
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -414,6 +441,34 @@ export default function Dashboard() {
                 <p className="text-[10px] text-gray-600 mt-3">
                   📎 Current: {user.resume_original_name}
                 </p>
+              )}
+            </div>
+
+            {/* Alerts & Notifications */}
+            <div className="glass-card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-white font-semibold">🔔 Alerts & Notifications</h2>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 mb-3">
+                <div>
+                  <p className="text-white text-sm font-medium">Daily Email Alerts</p>
+                  <p className="text-gray-400 text-xs mt-0.5">Get matched jobs straight to your inbox</p>
+                </div>
+                <button 
+                  onClick={toggleEmailAlerts} 
+                  disabled={alertLoading}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${user?.alert_preferences?.email_alerts ? 'bg-purple-600' : 'bg-gray-600'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user?.alert_preferences?.email_alerts ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+              {user?.alert_preferences?.email_alerts && (
+                <div>
+                  <button onClick={handleTestEmail} className="btn-secondary w-full text-xs py-2 mt-2">
+                    ✉️ Send Test Email Now
+                  </button>
+                  {testEmailMsg && <p className="text-[10px] text-center mt-2 text-gray-300">{testEmailMsg}</p>}
+                </div>
               )}
             </div>
 
