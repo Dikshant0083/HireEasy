@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { applicationsAPI } from '../services/api';
+import { Briefcase, GraduationCap, Award, CheckCircle, Bookmark, MapPin, ClipboardList } from 'lucide-react';
 
-const TYPE_LABELS = { job: '💼 Job', internship: '🎓 Internship', scholarship: '🏅 Scholarship' };
+const TYPE_LABELS = { job: <span className="flex items-center gap-1.5"><Briefcase size={12}/> Job</span>, internship: <span className="flex items-center gap-1.5"><GraduationCap size={12}/> Internship</span>, scholarship: <span className="flex items-center gap-1.5"><Award size={12}/> Scholarship</span> };
 
 function ApplicationCard({ app, onDelete }) {
   const job = app.job_id || app.job_snapshot;
@@ -13,14 +14,14 @@ function ApplicationCard({ app, onDelete }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className={`badge-${job.type || 'job'} text-[10px]`}>
-            {TYPE_LABELS[job.type] || '💼 Job'}
+            {TYPE_LABELS[job.type] || TYPE_LABELS.job}
           </span>
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
             app.action === 'applied'
               ? 'bg-green-500/15 text-green-400 border border-green-500/20'
               : 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/20'
           }`}>
-            {app.action === 'applied' ? '✅ Applied' : '⭐ Saved'}
+            {app.action === 'applied' ? <span className="flex items-center gap-1"><CheckCircle size={12} /> Applied</span> : <span className="flex items-center gap-1"><Bookmark size={12} /> Saved</span>}
           </span>
         </div>
 
@@ -29,7 +30,7 @@ function ApplicationCard({ app, onDelete }) {
 
         <div className="flex items-center gap-3 mt-2">
           {job.location && (
-            <span className="text-gray-500 text-xs">📍 {job.location}</span>
+            <span className="flex items-center gap-1 text-gray-500 text-xs"><MapPin size={12} /> {job.location}</span>
           )}
           <span className="text-gray-600 text-xs">
             {new Date(app.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -91,13 +92,15 @@ export default function Applications() {
   return (
     <div className="page-bg pt-20 pb-10 px-4 min-h-screen">
       <div className="max-w-3xl mx-auto animate-fade-in">
-        <h1 className="text-2xl font-bold text-white mb-6">📋 My Applications</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-white mb-6">
+          <ClipboardList size={24} className="text-purple-400" /> My Applications
+        </h1>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           {[
-            { value: 'applied', label: '✅ Applied' },
-            { value: 'saved', label: '⭐ Saved' },
+            { value: 'applied', label: <span className="flex items-center gap-1.5"><CheckCircle size={14} /> Applied</span> },
+            { value: 'saved', label: <span className="flex items-center gap-1.5"><Bookmark size={14} /> Saved</span> },
           ].map(t => (
             <button
               key={t.value}

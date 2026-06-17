@@ -7,15 +7,17 @@ import { jobsAPI } from '../services/api';
 import JobCard from '../components/JobCard';
 import FilterPanel from '../components/FilterPanel';
 
+import { Radio, Globe, Sparkles, Search, Award, FileText } from 'lucide-react';
+
 const LIMIT = 20;
 const SOURCES = [
-  { key: 'remotive',    label: '📡 Remotive',      color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-  { key: 'arbeitnow',  label: '🌍 Arbeitnow',      color: 'text-green-400 bg-green-500/10 border-green-500/20' },
-  { key: 'themuse',    label: '✨ The Muse',        color: 'text-pink-400 bg-pink-500/10 border-pink-500/20' },
-  { key: 'jsearch',    label: '🔍 Indeed/LinkedIn', color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
-  { key: 'jooble',     label: '🇮🇳 Jooble (India)', color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
-  { key: 'scholarship',label: '🏅 Scholarships',    color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' },
-  { key: 'csv',        label: '📄 CSV Upload',      color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+  { key: 'remotive',    label: <span className="flex items-center gap-1.5"><Radio size={14} /> Remotive</span>,      color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  { key: 'arbeitnow',  label: <span className="flex items-center gap-1.5"><Globe size={14} /> Arbeitnow</span>,      color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+  { key: 'themuse',    label: <span className="flex items-center gap-1.5"><Sparkles size={14} /> The Muse</span>,        color: 'text-pink-400 bg-pink-500/10 border-pink-500/20' },
+  { key: 'jsearch',    label: <span className="flex items-center gap-1.5"><Search size={14} /> Indeed/LinkedIn</span>, color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
+  { key: 'jooble',     label: <span className="flex items-center gap-1.5"><Globe size={14} /> Jooble (India)</span>, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+  { key: 'scholarship',label: <span className="flex items-center gap-1.5"><Award size={14} /> Scholarships</span>,    color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' },
+  { key: 'csv',        label: <span className="flex items-center gap-1.5"><FileText size={14} /> CSV Upload</span>,      color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
 ];
 
 function SkeletonCard() {

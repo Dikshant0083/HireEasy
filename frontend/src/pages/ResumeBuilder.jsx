@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api from '../services/api';
 import ResumePreview from '../components/resume/ResumePreview';
+import { User, GraduationCap, Briefcase, Rocket, Zap, Award, Edit3, Eye, Download, Save, CheckCircle } from 'lucide-react';
 
 const STEPS = [
-  { id: 'personal',       label: 'Personal',       icon: '👤' },
-  { id: 'education',      label: 'Education',       icon: '🎓' },
-  { id: 'experience',     label: 'Experience',      icon: '💼' },
-  { id: 'projects',       label: 'Projects',        icon: '🚀' },
-  { id: 'skills',         label: 'Skills',          icon: '⚡' },
-  { id: 'certifications', label: 'Certifications',  icon: '🏅' },
+  { id: 'personal',       label: 'Personal',       icon: <User size={16} /> },
+  { id: 'education',      label: 'Education',       icon: <GraduationCap size={16} /> },
+  { id: 'experience',     label: 'Experience',      icon: <Briefcase size={16} /> },
+  { id: 'projects',       label: 'Projects',        icon: <Rocket size={16} /> },
+  { id: 'skills',         label: 'Skills',          icon: <Zap size={16} /> },
+  { id: 'certifications', label: 'Certifications',  icon: <Award size={16} /> },
 ];
 
 const TEMPLATES = [
@@ -101,12 +102,12 @@ export default function ResumeBuilder() {
           </div>
           <div className="flex gap-3">
             <button onClick={() => setShowPreview(!showPreview)}
-              className={`btn-secondary text-sm ${showPreview ? 'ring-1 ring-purple-500' : ''}`}>
-              {showPreview ? '📝 Edit' : '👁️ Preview'}
+              className={`btn-secondary flex items-center gap-1.5 text-sm ${showPreview ? 'ring-1 ring-purple-500' : ''}`}>
+              {showPreview ? <><Edit3 size={16} /> Edit</> : <><Eye size={16} /> Preview</>}
             </button>
-            <button onClick={handlePrint} className="btn-secondary text-sm">⬇️ Export PDF</button>
-            <button onClick={save} disabled={saving} className="btn-primary text-sm disabled:opacity-50">
-              {saving ? 'Saving...' : saved ? '✅ Saved!' : '💾 Save'}
+            <button onClick={handlePrint} className="btn-secondary flex items-center gap-1.5 text-sm"><Download size={16} /> Export PDF</button>
+            <button onClick={save} disabled={saving} className="btn-primary flex items-center justify-center gap-1.5 text-sm disabled:opacity-50">
+              {saving ? 'Saving...' : saved ? <><CheckCircle size={16} /> Saved!</> : <><Save size={16} /> Save</>}
             </button>
           </div>
         </div>
@@ -146,7 +147,9 @@ export default function ResumeBuilder() {
             <div className="glass-card p-5 space-y-4">
               {step === 'personal' && (
                 <>
-                  <h3 className="text-white font-semibold mb-3">👤 Personal Information</h3>
+                  <h3 className="flex items-center gap-2 text-white font-semibold mb-3">
+                    <User size={18} className="text-blue-400" /> Personal Information
+                  </h3>
                   {[
                     { key: 'name', label: 'Full Name', placeholder: 'Dikshant Choudhary' },
                     { key: 'email', label: 'Email', placeholder: 'you@email.com' },
@@ -174,7 +177,9 @@ export default function ResumeBuilder() {
               {step === 'education' && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white font-semibold">🎓 Education</h3>
+                    <h3 className="flex items-center gap-2 text-white font-semibold">
+                      <GraduationCap size={18} className="text-purple-400" /> Education
+                    </h3>
                     <button className="btn-secondary text-xs" onClick={() => addListItem('education', { institution: '', degree: '', field: '', start_year: '', end_year: '', cgpa: '' })}>+ Add</button>
                   </div>
                   {(resume.education || []).length === 0 && <p className="text-gray-500 text-sm text-center py-4">No education entries yet</p>}
@@ -218,7 +223,9 @@ export default function ResumeBuilder() {
               {step === 'experience' && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white font-semibold">💼 Work Experience</h3>
+                    <h3 className="flex items-center gap-2 text-white font-semibold">
+                      <Briefcase size={18} className="text-yellow-400" /> Work Experience
+                    </h3>
                     <button className="btn-secondary text-xs" onClick={() => addListItem('experience', { company: '', role: '', location: '', start_date: '', end_date: '', current: false, description: '' })}>+ Add</button>
                   </div>
                   {(resume.experience || []).length === 0 && <p className="text-gray-500 text-sm text-center py-4">No experience entries yet</p>}
@@ -262,7 +269,9 @@ export default function ResumeBuilder() {
               {step === 'projects' && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white font-semibold">🚀 Projects</h3>
+                    <h3 className="flex items-center gap-2 text-white font-semibold">
+                      <Rocket size={18} className="text-red-400" /> Projects
+                    </h3>
                     <button className="btn-secondary text-xs" onClick={() => addListItem('projects', { name: '', description: '', tech_stack: [], link: '' })}>+ Add</button>
                   </div>
                   {(resume.projects || []).length === 0 && <p className="text-gray-500 text-sm text-center py-4">No projects yet</p>}
@@ -297,7 +306,9 @@ export default function ResumeBuilder() {
 
               {step === 'skills' && (
                 <>
-                  <h3 className="text-white font-semibold mb-3">⚡ Skills</h3>
+                  <h3 className="flex items-center gap-2 text-white font-semibold mb-3">
+                    <Zap size={18} className="text-yellow-400" /> Skills
+                  </h3>
                   {[
                     { key: 'technical', label: 'Technical Skills', placeholder: 'Python, React, Node.js, MongoDB, AWS...' },
                     { key: 'tools', label: 'Tools & Technologies', placeholder: 'Git, Docker, VS Code, Figma...' },
@@ -324,7 +335,9 @@ export default function ResumeBuilder() {
               {step === 'certifications' && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white font-semibold">🏅 Certifications</h3>
+                    <h3 className="flex items-center gap-2 text-white font-semibold">
+                      <Award size={18} className="text-green-400" /> Certifications
+                    </h3>
                     <button className="btn-secondary text-xs" onClick={() => addListItem('certifications', { name: '', issuer: '', year: '', link: '' })}>+ Add</button>
                   </div>
                   {(resume.certifications || []).length === 0 && <p className="text-gray-500 text-sm text-center py-4">No certifications yet</p>}

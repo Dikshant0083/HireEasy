@@ -281,9 +281,9 @@ export default function Dashboard() {
 
   const greeting = () => {
     const h = new Date().getHours();
-    if (h < 12) return '🌅 Good morning';
-    if (h < 17) return '☀️ Good afternoon';
-    return '🌙 Good evening';
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
   };
 
   return (
@@ -301,8 +301,8 @@ export default function Dashboard() {
         <div className="flex items-start justify-between mb-7 flex-wrap gap-3">
           <div>
             <p className="flex items-center gap-2 text-gray-400 text-sm">
-              {greeting() === '🌅 Good morning' ? <Sunrise size={16} className="text-yellow-400" /> : 
-               greeting() === '☀️ Good afternoon' ? <Sun size={16} className="text-yellow-400" /> : 
+              {greeting() === 'Good morning' ? <Sunrise size={16} className="text-yellow-400" /> : 
+               greeting() === 'Good afternoon' ? <Sun size={16} className="text-yellow-400" /> : 
                <Moon size={16} className="text-blue-300" />} 
               {greeting()},
             </p>

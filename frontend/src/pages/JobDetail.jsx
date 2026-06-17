@@ -4,9 +4,10 @@ import { useSelector, useDispatch } from 'react-redux';
 import { jobsAPI } from '../services/api';
 import { updateJobInList } from '../store/jobsSlice';
 import { setRedirectAfterLogin } from '../store/authSlice';
+import { Briefcase, GraduationCap, Award, Radio, Globe, FileText, MapPin, Banknote, Clock, Calendar, Tag, ClipboardList, Rocket, Bookmark, CheckCircle } from 'lucide-react';
 
-const TYPE_LABELS = { job: '💼 Job', internship: '🎓 Internship', scholarship: '🏅 Scholarship' };
-const SOURCE_LABELS = { remotive: '📡 Remotive', arbeitnow: '🇩🇪 Arbeitnow', scholarship: '🏅 Curated', csv: '📄 CSV Upload' };
+const TYPE_LABELS = { job: <span className="flex items-center gap-1.5"><Briefcase size={14}/> Job</span>, internship: <span className="flex items-center gap-1.5"><GraduationCap size={14}/> Internship</span>, scholarship: <span className="flex items-center gap-1.5"><Award size={14}/> Scholarship</span> };
+const SOURCE_LABELS = { remotive: <span className="flex items-center gap-1.5"><Radio size={14}/> Remotive</span>, arbeitnow: <span className="flex items-center gap-1.5"><Globe size={14}/> Arbeitnow</span>, scholarship: <span className="flex items-center gap-1.5"><Award size={14}/> Curated</span>, csv: <span className="flex items-center gap-1.5"><FileText size={14}/> CSV Upload</span> };
 
 function ScoreBar({ label, score, color = '#8b5cf6' }) {
   return (
@@ -123,9 +124,9 @@ export default function JobDetail() {
                 <div className="flex-1">
                   <h1 className="text-xl font-bold text-white">{job.title}</h1>
                   <p className="text-gray-400 mt-0.5">{job.company}</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className={`badge-${job.type}`}>{TYPE_LABELS[job.type]}</span>
-                    {job.is_remote && <span className="badge-remote">🌐 Remote</span>}
+                    {job.is_remote && <span className="badge-remote flex items-center gap-1"><Globe size={14} /> Remote</span>}
                     <span className="text-xs text-gray-500 px-2 py-1 rounded-full bg-white/5">
                       {SOURCE_LABELS[job.source] || job.source}
                     </span>
@@ -137,25 +138,25 @@ export default function JobDetail() {
               <div className="grid grid-cols-2 gap-3 mb-5">
                 {job.location && (
                   <div className="p-3 rounded-xl bg-white/3 border border-white/5">
-                    <p className="text-gray-500 text-xs">📍 Location</p>
+                    <p className="flex items-center gap-1 text-gray-500 text-xs"><MapPin size={14} /> Location</p>
                     <p className="text-white text-sm font-medium mt-0.5">{job.location}</p>
                   </div>
                 )}
                 {job.salary && (
                   <div className="p-3 rounded-xl bg-white/3 border border-white/5">
-                    <p className="text-gray-500 text-xs">💰 Compensation</p>
+                    <p className="flex items-center gap-1 text-gray-500 text-xs"><Banknote size={14} /> Compensation</p>
                     <p className="text-white text-sm font-medium mt-0.5">{job.salary}</p>
                   </div>
                 )}
                 {job.job_type && (
                   <div className="p-3 rounded-xl bg-white/3 border border-white/5">
-                    <p className="text-gray-500 text-xs">⏰ Type</p>
+                    <p className="flex items-center gap-1 text-gray-500 text-xs"><Clock size={14} /> Type</p>
                     <p className="text-white text-sm font-medium mt-0.5">{job.job_type.replace('_', ' ')}</p>
                   </div>
                 )}
                 {job.posted_at && (
                   <div className="p-3 rounded-xl bg-white/3 border border-white/5">
-                    <p className="text-gray-500 text-xs">📅 Posted</p>
+                    <p className="flex items-center gap-1 text-gray-500 text-xs"><Calendar size={14} /> Posted</p>
                     <p className="text-white text-sm font-medium mt-0.5">
                       {new Date(job.posted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
@@ -166,7 +167,7 @@ export default function JobDetail() {
               {/* Tags */}
               {job.tags?.length > 0 && (
                 <div className="mb-5">
-                  <p className="text-gray-500 text-xs mb-2">🏷️ Skills & Tags</p>
+                  <p className="flex items-center gap-1.5 text-gray-500 text-xs mb-2"><Tag size={14} /> Skills & Tags</p>
                   <div className="flex flex-wrap gap-1.5">
                     {job.tags.map((tag, i) => (
                       <span key={i} className="text-xs px-3 py-1 rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/15">
@@ -180,7 +181,7 @@ export default function JobDetail() {
               {/* Description */}
               {job.description && (
                 <div>
-                  <p className="text-gray-500 text-xs mb-2">📋 Description</p>
+                  <p className="flex items-center gap-1.5 text-gray-500 text-xs mb-2"><ClipboardList size={14} /> Description</p>
                   <div className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
                     {job.description}
                   </div>
@@ -223,24 +224,24 @@ export default function JobDetail() {
                   onClick={handleApply}
                   className="btn-apply w-full flex items-center justify-center gap-2 text-sm"
                 >
-                  {applying ? 'Opening...' : '🚀 Apply Now'}
+                  {applying ? 'Opening...' : <><Rocket size={16} /> Apply Now</>}
                 </a>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${
                     job.isSaved
                       ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
                       : 'btn-secondary'
                   }`}
                 >
-                  {saving ? '...' : job.isSaved ? '⭐ Saved' : '☆ Save'}
+                  {saving ? '...' : job.isSaved ? <><Bookmark fill="currentColor" size={16} /> Saved</> : <><Bookmark size={16} /> Save</>}
                 </button>
               </div>
 
               {job.isApplied && (
                 <div className="mt-3 p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
-                  <p className="text-green-400 text-xs">✅ You applied to this job</p>
+                  <p className="flex justify-center items-center gap-1.5 text-green-400 text-xs"><CheckCircle size={14} /> You applied to this job</p>
                 </div>
               )}
             </div>
