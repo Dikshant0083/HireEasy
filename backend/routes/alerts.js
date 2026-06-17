@@ -51,6 +51,18 @@ router.post('/test-email', authenticate, async (req, res, next) => {
   }
 });
 
+// GET /api/alerts/debug-email
+router.get('/debug-email', async (req, res) => {
+  try {
+    const dummyUser = { email: 'khileridikshant@gmail.com', name: 'Dikshant', skills: ['React'] };
+    const dummyJobs = [{ title: 'Frontend Developer', company: 'Google', location: 'Remote', apply_url: 'http://example.com' }];
+    await sendJobAlertEmail(dummyUser, dummyJobs);
+    res.json({ success: true, message: "Debug email sent" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: `Debug Mail Error: ${err.message}`, stack: err.stack });
+  }
+});
+
 // POST /api/alerts/test-whatsapp — send a test WhatsApp message
 router.post('/test-whatsapp', authenticate, async (req, res, next) => {
   try {
