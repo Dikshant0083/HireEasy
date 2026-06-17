@@ -29,14 +29,28 @@ export const googleProvider = new GoogleAuthProvider();
 
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// Use redirect on production (avoids popup-blocked errors), popup on localhost
+/**
+ * Sign in with Google.
+ * - Tries popup first (works on most browsers when triggered by user click).
+ * - If popup is blocked, automatically falls back to redirect.
+ */
 export async function signInWithGoogle() {
-  const isLocalhost = window.location.hostname === 'localhost';
-  if (isLocalhost) {
-    return signInWithPopup(auth, googleProvider);
-  } else {
-    await signInWithRedirect(auth, googleProvider);
-    return null; // redirect will reload the page
+  try {
+    // Always try popup first — works when called directly from a user click
+    const result = await signInWithPopup(auth, googleProvider);
+    return result;
+  } catch (err) {
+    if (
+      err.code === 'auth/popup-blocked' ||
+      err.code === 'auth/popup-cancelled-by-user' ||
+      err.code === 'auth/cancelled-popup-request'
+    ) {
+      // Popup was blocked — fall back to redirect
+      console.log('Popup blocked, switching to redirect...');
+      await signInWithRedirect(auth, googleProvider);
+      return null; // page will reload
+    }
+    throw err; // re-throw other errors
   }
 }
 
