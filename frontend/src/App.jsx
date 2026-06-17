@@ -27,7 +27,19 @@ function AuthLoader({ children }) {
           const res = await authAPI.getMe();
           dispatch(setUser(res.data.user));
         } catch {
-          dispatch(setAuthLoading(false));
+          // If getMe fails, it might be a new user who just completed a redirect login.
+          try {
+            const idToken = await firebaseUser.getIdToken();
+            const fd = new FormData();
+            fd.append('idToken', idToken);
+            fd.append('name', firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '');
+            fd.append('provider', firebaseUser.providerData?.[0]?.providerId === 'google.com' ? 'google' : 'email');
+            const res = await authAPI.syncUser(fd);
+            dispatch(setUser(res.data.user));
+          } catch (syncErr) {
+            console.error("Failed to sync new user:", syncErr);
+            dispatch(logout());
+          }
         }
       } else {
         dispatch(logout());
