@@ -1,20 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Briefcase, GraduationCap, Award, Radio, Globe, Sparkles, Search, MapPin, FileText, Banknote, Bookmark } from 'lucide-react';
 
 const TYPE_CONFIG = {
-  job: { label: '💼 Job', className: 'badge-job' },
-  internship: { label: '🎓 Internship', className: 'badge-internship' },
-  scholarship: { label: '🏅 Scholarship', className: 'badge-scholarship' },
+  job: { label: <><Briefcase size={12} /> Job</>, className: 'badge-job flex items-center gap-1' },
+  internship: { label: <><GraduationCap size={12} /> Internship</>, className: 'badge-internship flex items-center gap-1' },
+  scholarship: { label: <><Award size={12} /> Scholarship</>, className: 'badge-scholarship flex items-center gap-1' },
 };
 
 const SOURCE_CONFIG = {
-  remotive:    { label: '📡 Remotive',           color: 'text-blue-400' },
-  arbeitnow:   { label: '🌍 Arbeitnow',          color: 'text-green-400' },
-  themuse:     { label: '✨ The Muse',            color: 'text-pink-400' },
-  jsearch:     { label: '🔍 Indeed/LinkedIn',    color: 'text-sky-400' },
-  jooble:      { label: '🇮🇳 Jooble',            color: 'text-orange-400' },
-  scholarship: { label: '🏅 Curated',            color: 'text-yellow-400' },
-  csv:         { label: '📄 CSV Upload',         color: 'text-purple-400' },
+  remotive:    { label: <span className="flex items-center gap-1"><Radio size={12} /> Remotive</span>,           color: 'text-blue-400' },
+  arbeitnow:   { label: <span className="flex items-center gap-1"><Globe size={12} /> Arbeitnow</span>,          color: 'text-green-400' },
+  themuse:     { label: <span className="flex items-center gap-1"><Sparkles size={12} /> The Muse</span>,            color: 'text-pink-400' },
+  jsearch:     { label: <span className="flex items-center gap-1"><Search size={12} /> Indeed/LinkedIn</span>,    color: 'text-sky-400' },
+  jooble:      { label: <span className="flex items-center gap-1"><Globe size={12} /> Jooble</span>,            color: 'text-orange-400' },
+  scholarship: { label: <span className="flex items-center gap-1"><Award size={12} /> Curated</span>,            color: 'text-yellow-400' },
+  csv:         { label: <span className="flex items-center gap-1"><FileText size={12} /> CSV Upload</span>,         color: 'text-purple-400' },
 };
 
 function ScoreRing({ score }) {
@@ -105,15 +106,15 @@ export default function JobCard({ job, onSave, onApply, showScore = true }) {
       {/* Badges */}
       <div className="flex flex-wrap gap-1.5">
         <span className={typeConfig.className}>{typeConfig.label}</span>
-        {job.is_remote && <span className="badge-remote">🌐 Remote</span>}
+        {job.is_remote && <span className="badge-remote flex items-center gap-1"><Globe size={12} /> Remote</span>}
         {job.location && !job.is_remote && (
-          <span className="px-2.5 py-1 rounded-full text-xs text-gray-400 bg-white/5 border border-white/10">
-            📍 {job.location.slice(0, 20)}
+          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs text-gray-400 bg-white/5 border border-white/10">
+            <MapPin size={12} /> {job.location.slice(0, 20)}
           </span>
         )}
         {job.salary && (
-          <span className="px-2.5 py-1 rounded-full text-xs text-green-400 bg-green-500/10 border border-green-500/20">
-            💰 {job.salary.slice(0, 20)}
+          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs text-green-400 bg-green-500/10 border border-green-500/20">
+            <Banknote size={12} /> {job.salary.slice(0, 20)}
           </span>
         )}
       </div>
@@ -137,7 +138,7 @@ export default function JobCard({ job, onSave, onApply, showScore = true }) {
       {/* Footer */}
       <div className="flex items-center justify-between pt-1 border-t border-white/5">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-medium ${sourceConfig.color}`}>
+          <span className={`flex items-center gap-1 text-[10px] font-medium ${sourceConfig.color}`}>
             via {sourceConfig.label}
           </span>
           {job.posted_at && (
@@ -155,7 +156,7 @@ export default function JobCard({ job, onSave, onApply, showScore = true }) {
             }`}
             title={job.isSaved ? 'Unsave' : 'Save'}
           >
-            {job.isSaved ? '⭐' : '☆'}
+            {job.isSaved ? <Bookmark fill="currentColor" size={16} /> : <Bookmark size={16} />}
           </button>
 
           {/* Apply button */}

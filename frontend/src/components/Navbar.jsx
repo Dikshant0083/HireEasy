@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
 import { auth, signOut } from '../firebase';
+import { Home, Briefcase, ClipboardList, Calendar, FileText, LogOut } from 'lucide-react';
 
 export default function Navbar() {
   const dispatch = useDispatch();
@@ -46,19 +47,24 @@ export default function Navbar() {
           {isAuthenticated && (
           <div className="hidden md:flex items-center gap-1">
               <Link to="/dashboard" className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}>
-                🏠 Dashboard
+                <Home size={18} />
+                Dashboard
               </Link>
               <Link to="/jobs" className={`nav-link ${isActive('/jobs') ? 'active' : ''}`}>
-                💼 Jobs
+                <Briefcase size={18} />
+                Jobs
               </Link>
               <Link to="/applications" className={`nav-link ${isActive('/applications') ? 'active' : ''}`}>
-                📋 Applications
+                <ClipboardList size={18} />
+                Applications
               </Link>
               <Link to="/interviews" className={`nav-link ${isActive('/interviews') ? 'active' : ''}`}>
-                📅 Interviews
+                <Calendar size={18} />
+                Interviews
               </Link>
               <Link to="/resume-builder" className={`nav-link ${isActive('/resume-builder') ? 'active' : ''}`}>
-                📄 Resume
+                <FileText size={18} />
+                Resume
               </Link>
             </div>
           )}
@@ -90,28 +96,28 @@ export default function Navbar() {
                       <div className="py-1">
                         <Link to="/dashboard" onClick={() => setMenuOpen(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                          🏠 Dashboard
+                          <Home size={16} /> Dashboard
                         </Link>
                         <Link to="/jobs" onClick={() => setMenuOpen(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                          💼 Browse Jobs
+                          <Briefcase size={16} /> Browse Jobs
                         </Link>
                         <Link to="/applications" onClick={() => setMenuOpen(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                          📋 Applications
+                          <ClipboardList size={16} /> Applications
                         </Link>
                         <Link to="/interviews" onClick={() => setMenuOpen(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                          📅 Interviews
+                          <Calendar size={16} /> Interviews
                         </Link>
                         <Link to="/resume-builder" onClick={() => setMenuOpen(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
-                          📄 Resume Builder
+                          <FileText size={16} /> Resume Builder
                         </Link>
                         <hr className="border-purple-500/10 my-1" />
                         <button onClick={handleLogout}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors w-full text-left">
-                          🚪 Sign Out
+                          <LogOut size={16} /> Sign Out
                         </button>
                       </div>
                     </div>
@@ -126,22 +132,40 @@ export default function Navbar() {
             )}
           </div>
         </div>
-
-        {/* Mobile nav */}
-        {isAuthenticated && (
-          <div className="md:hidden flex gap-1 pb-2 overflow-x-auto">
-            <Link to="/dashboard" className={`nav-link flex-shrink-0 text-center text-xs ${isActive('/dashboard') ? 'active' : ''}`}>🏠</Link>
-            <Link to="/jobs" className={`nav-link flex-shrink-0 text-center text-xs ${isActive('/jobs') ? 'active' : ''}`}>💼 Jobs</Link>
-            <Link to="/applications" className={`nav-link flex-shrink-0 text-center text-xs ${isActive('/applications') ? 'active' : ''}`}>📋</Link>
-            <Link to="/interviews" className={`nav-link flex-shrink-0 text-center text-xs ${isActive('/interviews') ? 'active' : ''}`}>📅</Link>
-            <Link to="/resume-builder" className={`nav-link flex-shrink-0 text-center text-xs ${isActive('/resume-builder') ? 'active' : ''}`}>📄</Link>
-          </div>
-        )}
       </div>
 
       {/* Backdrop for menu */}
       {menuOpen && (
         <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+      )}
+
+      {/* Mobile nav (Bottom Bar) */}
+      {isAuthenticated && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-purple-500/20"
+             style={{ background: 'rgba(8, 8, 16, 0.95)', backdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div className="flex justify-around items-center h-16 px-2">
+            <Link to="/dashboard" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/dashboard') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Home size={22} className={isActive('/dashboard') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+              <span>Home</span>
+            </Link>
+            <Link to="/jobs" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/jobs') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Briefcase size={22} className={isActive('/jobs') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+              <span>Jobs</span>
+            </Link>
+            <Link to="/applications" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/applications') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+              <ClipboardList size={22} className={isActive('/applications') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+              <span>Applied</span>
+            </Link>
+            <Link to="/interviews" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/interviews') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Calendar size={22} className={isActive('/interviews') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+              <span>Events</span>
+            </Link>
+            <Link to="/resume-builder" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/resume-builder') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+              <FileText size={22} className={isActive('/resume-builder') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+              <span>Resume</span>
+            </Link>
+          </div>
+        </div>
       )}
     </nav>
   );
