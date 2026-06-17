@@ -25,6 +25,7 @@ export default function Navbar() {
     : 'HE';
 
   return (
+    <>
     <nav className="fixed top-0 left-0 right-0 z-50" style={{
       background: 'rgba(8, 8, 16, 0.85)',
       backdropFilter: 'blur(20px)',
@@ -138,35 +139,36 @@ export default function Navbar() {
       {menuOpen && (
         <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
       )}
-
-      {/* Mobile nav (Bottom Bar) */}
-      {isAuthenticated && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-purple-500/20"
-             style={{ background: 'rgba(8, 8, 16, 0.95)', backdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <div className="flex justify-around items-center h-16 px-2">
-            <Link to="/dashboard" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/dashboard') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
-              <Home size={22} className={isActive('/dashboard') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
-              <span>Home</span>
-            </Link>
-            <Link to="/jobs" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/jobs') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
-              <Briefcase size={22} className={isActive('/jobs') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
-              <span>Jobs</span>
-            </Link>
-            <Link to="/applications" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/applications') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
-              <ClipboardList size={22} className={isActive('/applications') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
-              <span>Applied</span>
-            </Link>
-            <Link to="/interviews" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/interviews') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
-              <Calendar size={22} className={isActive('/interviews') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
-              <span>Events</span>
-            </Link>
-            <Link to="/resume-builder" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/resume-builder') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
-              <FileText size={22} className={isActive('/resume-builder') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
-              <span>Resume</span>
-            </Link>
-          </div>
-        </div>
-      )}
     </nav>
+
+    {/* Mobile nav (Bottom Bar) */}
+    {isAuthenticated && (
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-purple-500/20"
+            style={{ background: 'rgba(8, 8, 16, 0.95)', backdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex justify-around items-center h-16 px-2">
+          <Link to="/dashboard" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/dashboard') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+            <Home size={22} className={isActive('/dashboard') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+            <span>Home</span>
+          </Link>
+          <Link to="/jobs" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/jobs') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+            <Briefcase size={22} className={isActive('/jobs') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+            <span>Jobs</span>
+          </Link>
+          <Link to="/applications" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/applications') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+            <ClipboardList size={22} className={isActive('/applications') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+            <span>Applied</span>
+          </Link>
+          <Link to="/interviews" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/interviews') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+            <Calendar size={22} className={isActive('/interviews') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+            <span>Events</span>
+          </Link>
+          <Link to="/resume-builder" className={`flex flex-col items-center justify-center w-full h-full text-[10px] gap-1 transition-colors ${isActive('/resume-builder') ? 'text-purple-400 font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+            <FileText size={22} className={isActive('/resume-builder') ? 'fill-purple-500/20 stroke-2' : 'stroke-[1.5]'} />
+            <span>Resume</span>
+          </Link>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
