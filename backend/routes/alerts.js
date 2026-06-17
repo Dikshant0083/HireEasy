@@ -46,7 +46,9 @@ router.post('/test-email', authenticate, async (req, res, next) => {
       .slice(0, 5);
     await sendJobAlertEmail(req.user, scored);
     res.json({ success: true, message: `Test email sent to ${req.user.email}` });
-  } catch (err) { next(err); }
+  } catch (err) { 
+    res.status(500).json({ success: false, message: `Mail Error: ${err.message}` });
+  }
 });
 
 // POST /api/alerts/test-whatsapp — send a test WhatsApp message
