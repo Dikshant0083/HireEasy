@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { auth, signInWithGoogle, getRedirectResult, signInWithEmailAndPassword } from '../firebase';
+import { auth, signInWithGoogle, getRedirectResult, signInWithEmailAndPassword, rememberAfterAuth, takeAfterAuth } from '../firebase';
 import { setUser, setRedirectAfterLogin } from '../store/authSlice';
 import { authAPI } from '../services/api';
 import AuthShell, { GoogleButton, OrDivider, firebaseMessage } from '../components/AuthShell';
@@ -36,10 +36,10 @@ export default function Login() {
   const dest = redirectAfterLogin || location.state?.from || '/dashboard';
   const reason = location.state?.reason;
 
-  const finish = async (firebaseUser) => {
+  const finish = async (firebaseUser, to = { dest, reason }) => {
     dispatch(setUser(await syncUser(firebaseUser)));
     dispatch(setRedirectAfterLogin(null));
-    navigate(dest, { replace: true, state: { afterAuth: reason } });
+    navigate(to.dest, { replace: true, state: { afterAuth: to.reason } });
   };
 
   const handleLogin = async (e) => {
@@ -57,8 +57,9 @@ export default function Login() {
   };
 
   useEffect(() => {
+    // Back from the full-page Google sign-in: restore where the user was headed.
     getRedirectResult(auth)
-      .then((result) => result?.user && finish(result.user))
+      .then((result) => result?.user && finish(result.user, takeAfterAuth() || { dest, reason }))
       .catch((err) => setError(firebaseMessage(err, 'Google sign-in failed.')));
   }, []);
 
@@ -66,8 +67,9 @@ export default function Login() {
     setGoogleLoading(true);
     setError('');
     try {
+      rememberAfterAuth(dest, reason); // used only if the popup is blocked and we redirect
       const result = await signInWithGoogle();
-      if (result?.user) await finish(result.user);
+      if (result?.user) { takeAfterAuth(); await finish(result.user); }
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
         setError(firebaseMessage(err, 'Google sign-in failed.'));

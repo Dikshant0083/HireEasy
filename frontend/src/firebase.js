@@ -29,19 +29,35 @@ export const googleProvider = new GoogleAuthProvider();
 
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-const isLocalhost = () =>
-  typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1');
-
 /**
- * Sign in with Google.
- * - localhost → popup (fast for development)
- * - production → redirect (works on ALL browsers including Chrome)
- *   Chrome blocks popups from third-party origins; redirect is 100% reliable.
+ * Sign in with Google: popup first (keeps the page and form state), and if the
+ * browser blocks popups (Chrome often does per site) fall back to a full-page
+ * redirect. Returns the popup result, or null when the page is redirecting;
+ * the redirect result is picked up by getRedirectResult on the auth pages.
  */
 export async function signInWithGoogle() {
-  return signInWithPopup(auth, googleProvider);
+  try {
+    return await signInWithPopup(auth, googleProvider);
+  } catch (err) {
+    if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+    throw err;
+  }
+}
+
+// Where to go after sign-in has to survive the full-page Google redirect.
+const AFTER_AUTH_KEY = 'hireeasy_after_auth';
+export function rememberAfterAuth(dest, reason) {
+  try { sessionStorage.setItem(AFTER_AUTH_KEY, JSON.stringify({ dest, reason })); } catch (_) {}
+}
+export function takeAfterAuth() {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(AFTER_AUTH_KEY) || 'null');
+    sessionStorage.removeItem(AFTER_AUTH_KEY);
+    return v;
+  } catch (_) { return null; }
 }
 
 export {

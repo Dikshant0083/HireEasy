@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Check, FileText, Upload, X, ArrowLeft } from 'lucide-react';
-import { auth, signInWithGoogle, getRedirectResult, createUserWithEmailAndPassword, updateProfile } from '../firebase';
+import { auth, signInWithGoogle, getRedirectResult, createUserWithEmailAndPassword, updateProfile, rememberAfterAuth, takeAfterAuth } from '../firebase';
 import { setUser, setRedirectAfterLogin } from '../store/authSlice';
 import { authAPI } from '../services/api';
 import AuthShell, { GoogleButton, OrDivider, firebaseMessage } from '../components/AuthShell';
@@ -27,10 +27,10 @@ export default function Register() {
   const reason = location.state?.reason;
   // Captured once: the auth listener resets store state while the account is being created.
   const destRef = useRef(redirectAfterLogin || location.state?.from || '/dashboard');
-  const done = (user) => {
+  const done = (user, to = { dest: destRef.current, reason }) => {
     dispatch(setUser(user));
     dispatch(setRedirectAfterLogin(null));
-    navigate(destRef.current, { replace: true, state: { afterAuth: reason } });
+    navigate(to.dest, { replace: true, state: { afterAuth: to.reason } });
   };
 
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '', course: '', degree: '', cgpa: '' });
@@ -101,7 +101,7 @@ export default function Register() {
     getRedirectResult(auth).then(async (result) => {
       if (!result?.user) return;
       const user = await syncToBackend(result.user, { name: result.user.displayName, provider: 'google' });
-      done(user);
+      done(user, takeAfterAuth() || undefined); // back from full-page Google sign-in
     }).catch((err) => setError(firebaseMessage(err, 'Google sign-up failed.')));
   }, []);
 
@@ -109,8 +109,10 @@ export default function Register() {
     setGoogleLoading(true);
     setError('');
     try {
+      rememberAfterAuth(destRef.current, reason); // used only if the popup is blocked and we redirect
       const result = await signInWithGoogle();
       if (result?.user) {
+        takeAfterAuth();
         const user = await syncToBackend(result.user, { ...form, name: result.user.displayName, provider: 'google' });
         done(user);
       }
