@@ -76,7 +76,7 @@ const sendWelcomeEmail = async ({ name, email }) => {
 
               <!-- CTA Button -->
               <div style="text-align:center;">
-                <a href="http://localhost:3000/dashboard"
+                <a href="${(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '')}/dashboard"
                    style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;text-decoration:none;padding:14px 36px;border-radius:12px;font-size:15px;font-weight:700;letter-spacing:0.3px;">
                   🚀 Go to My Dashboard
                 </a>

@@ -25,7 +25,9 @@ const jobsSlice = createSlice({
       state.page = action.payload.page;
     },
     appendJobs: (state, action) => {
-      state.jobs = [...state.jobs, ...action.payload.jobs];
+      // New listings can arrive between page loads and shift the next page; skip ones already shown.
+      const seen = new Set(state.jobs.map((j) => j._id));
+      state.jobs = [...state.jobs, ...action.payload.jobs.filter((j) => !seen.has(j._id))];
       state.total = action.payload.total;
       state.pages = action.payload.pages;
       state.page = action.payload.page;

@@ -65,19 +65,36 @@ async function parseResume(filePath, mimetype) {
   return extractSkills(text);
 }
 
-function extractSkills(text) {
-  const normalized = text.toLowerCase();
-  const found = new Set();
+// Short or common-word skills ("C", "R", "Go", "Rust", "Express", "Swift"…) only count
+// when written with their usual capitalisation, so "go to market" or "R&D" don't match.
+const CASE_SENSITIVE = new Set(['C', 'R', 'Go', 'Rust', 'Express', 'Swift', 'Dart', 'Shell', 'Rails', 'Ruby', 'Perl', 'Bash']);
 
-  for (const skill of SKILLS_DICT) {
-    // Match whole word, case-insensitive
-    const pattern = new RegExp(`\\b${skill.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
-    if (pattern.test(normalized)) {
-      found.add(skill);
-    }
-  }
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  return Array.from(found);
+// Word boundaries that treat "+", "#" and "." as part of a skill, so "Java" never
+// matches inside "JavaScript" and "C" never matches inside "C++" or "C#".
+const toRe = (skill, flags) =>
+  new RegExp('(?<![\\w+#.&])' + escapeRe(skill) + '(?![\\w+#&]|\\.\\w)', flags);
+
+// Skills that are also everyday words need context, not just capitalisation:
+// "Express" alone is usually the verb or "American Express", not the Node.js framework.
+const CONTEXT_RE = {
+  Express: /\bExpress(?:\.?js)\b|\b(?:Node(?:\.js)?|NodeJS|Mongo\w*|React|MERN|MEAN|REST)\b[^.\n]{0,30}\bExpress\b|\bExpress\b[^.\n]{0,30}\b(?:Node(?:\.js)?|NodeJS|Mongo\w*|MERN|MEAN)\b/i,
+};
+
+const MATCHERS = SKILLS_DICT.map((skill) => ({
+  skill,
+  re: CONTEXT_RE[skill] || toRe(skill, CASE_SENSITIVE.has(skill) ? '' : 'i'),
+}));
+
+function extractSkills(text = '') {
+  return MATCHERS.filter(({ re }) => re.test(text)).map(({ skill }) => skill);
 }
 
-module.exports = { parseResume, extractSkills };
+// Matcher for one user skill (may be outside the dictionary, e.g. edited by hand).
+function skillMatcher(skill) {
+  const known = MATCHERS.find((m) => m.skill.toLowerCase() === skill.toLowerCase());
+  return known ? known.re : toRe(skill, 'i');
+}
+
+module.exports = { parseResume, extractSkills, skillMatcher };

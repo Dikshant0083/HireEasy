@@ -225,7 +225,7 @@ const scholarships = [
 
 async function seedScholarships() {
   try {
-    const ops = scholarships.map(s => ({
+    const ops = scholarships.map(({ posted_at, ...s }) => ({
       updateOne: {
         filter: { external_id: s.external_id },
         update: {
@@ -238,6 +238,9 @@ async function seedScholarships() {
             // Never expires
             expires_at: new Date('2099-12-31'),
           },
+          // Only on first insert: re-stamping on every boot made these look "posted today"
+          // and pinned them above real new listings.
+          $setOnInsert: { posted_at },
         },
         upsert: true,
       },

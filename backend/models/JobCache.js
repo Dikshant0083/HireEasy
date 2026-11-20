@@ -4,7 +4,7 @@ const jobCacheSchema = new mongoose.Schema({
   external_id: { type: String, unique: true, sparse: true },
   source: {
     type: String,
-    enum: ['remotive', 'arbeitnow', 'scholarship', 'csv'],
+    enum: ['remotive', 'arbeitnow', 'themuse', 'jsearch', 'jooble', 'scholarship', 'csv'],
     required: true
   },
   type: {

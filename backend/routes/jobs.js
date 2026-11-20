@@ -9,7 +9,10 @@ const optAuth = require('../middleware/optionalAuth');
 const JobCache = require('../models/JobCache');
 const Application = require('../models/Application');
 const { refreshJobsIfStale } = require('../services/jobAggregator');
-const { scoreJob } = require('../services/scorer');
+const mongoose = require('mongoose');
+const { scoreJob, matchDetails } = require('../services/scorer');
+
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // CSV upload multer config
 const csvStorage = multer.diskStorage({
@@ -26,7 +29,7 @@ const csvUpload = multer({
   storage: csvStorage,
   fileFilter: (req, file, cb) => {
     if (path.extname(file.originalname).toLowerCase() === '.csv') cb(null, true);
-    else cb(new Error('Only CSV files allowed'));
+    else cb(Object.assign(new Error('Only CSV files are allowed'), { statusCode: 400 }));
   },
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
@@ -37,10 +40,9 @@ router.get('/', optAuth, async (req, res, next) => {
     // Refresh real-time data if stale (non-blocking on subsequent requests)
     refreshJobsIfStale().catch(console.error);
 
-    const {
-      type, search, remote, page = 1, limit = 20,
-      source, sortBy = 'date',
-    } = req.query;
+    const { type, search, remote, source, sortBy = 'date' } = req.query;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
 
     const filter = {};
     if (type && ['job', 'internship', 'scholarship'].includes(type)) filter.type = type;
@@ -48,13 +50,9 @@ router.get('/', optAuth, async (req, res, next) => {
     if (source && ['remotive', 'arbeitnow', 'scholarship', 'csv', 'themuse', 'jsearch', 'jooble'].includes(source)) {
       filter.source = source;
     }
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { company: { $regex: search, $options: 'i' } },
-        { tags: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-      ];
+    if (search && String(search).trim()) {
+      const rx = { $regex: escapeRegex(String(search).trim().slice(0, 100)), $options: 'i' };
+      filter.$or = [{ title: rx }, { company: rx }, { tags: rx }, { description: rx }];
     }
 
     const userSkills = req.user ? (req.user.skills || []) : [];
@@ -63,23 +61,21 @@ router.get('/', optAuth, async (req, res, next) => {
     let jobs, total;
 
     if (scoreSort) {
-      // Fetch all (reasonable cap) and sort by match score in memory
-      const allJobs = await JobCache.find(filter).sort({ posted_at: -1 }).limit(500).lean();
+      // Score every matching job, then page. Jobs with no skill data sort last.
+      const allJobs = await JobCache.find(filter).sort({ posted_at: -1, _id: -1 }).lean();
       const scored = allJobs.map(job => ({
         ...job,
         matchScore: scoreJob(userSkills, job),
-      })).sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+      })).sort((a, b) => (b.matchScore ?? -1) - (a.matchScore ?? -1));
 
       total = scored.length;
-      const skip = (parseInt(page) - 1) * parseInt(limit);
-      jobs = scored.slice(skip, skip + parseInt(limit));
+      jobs = scored.slice((page - 1) * limit, page * limit);
     } else {
       total = await JobCache.countDocuments(filter);
-      const skip = (parseInt(page) - 1) * parseInt(limit);
       jobs = await JobCache.find(filter)
-        .sort({ posted_at: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
+        .sort({ posted_at: -1, _id: -1 }) // _id breaks ties so pages never overlap
+        .skip((page - 1) * limit)
+        .limit(limit)
         .lean();
 
       // Add match scores (not sorted by them)
@@ -112,8 +108,8 @@ router.get('/', optAuth, async (req, res, next) => {
     res.json({
       success: true,
       total,
-      page: parseInt(page),
-      pages: Math.ceil(total / parseInt(limit)),
+      page,
+      pages: Math.ceil(total / limit),
       jobs: result,
     });
   } catch (err) {
@@ -125,11 +121,14 @@ router.get('/', optAuth, async (req, res, next) => {
 // GET /api/jobs/:id — single job with score
 router.get('/:id', optAuth, async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
     const job = await JobCache.findById(req.params.id).lean();
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
-    const userSkills = req.user ? req.user.skills : [];
-    const matchScore = userSkills.length > 0 ? scoreJob(userSkills, job) : null;
+    const { score: matchScore, matched: matchedSkills, missing: missingSkills } =
+      matchDetails(req.user?.skills || [], job);
 
     let isSaved = false;
     let isApplied = false;
@@ -144,7 +143,7 @@ router.get('/:id', optAuth, async (req, res, next) => {
       });
     }
 
-    res.json({ success: true, job: { ...job, matchScore, isSaved, isApplied } });
+    res.json({ success: true, job: { ...job, matchScore, matchedSkills, missingSkills, isSaved, isApplied } });
   } catch (err) {
     next(err);
   }

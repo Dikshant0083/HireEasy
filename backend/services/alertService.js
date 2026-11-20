@@ -6,6 +6,10 @@
 const nodemailer = require('nodemailer');
 const https = require('https');
 
+const APP_URL = (process.env.FRONTEND_URL || '${APP_URL}').replace(/\/$/, '');
+// Job data comes from third-party APIs, so escape it before putting it into email HTML.
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE || 'gmail',
   auth: {
@@ -50,8 +54,8 @@ async function sendJobAlertEmail(user, jobs) {
   const jobRows = jobs.map((job) => `
     <tr>
       <td style="padding:12px 16px;border-bottom:1px solid #1e1e2e;">
-        <div style="font-weight:600;color:#c084fc;">${job.title}</div>
-        <div style="color:#a1a1aa;font-size:13px;">${job.company} · ${job.location}</div>
+        <div style="font-weight:600;color:#c084fc;">${esc(job.title)}</div>
+        <div style="color:#a1a1aa;font-size:13px;">${esc(job.company)} · ${esc(job.location)}</div>
       </td>
       <td style="padding:12px 16px;border-bottom:1px solid #1e1e2e;text-align:center;">
         <span style="background:${job.matchScore >= 70 ? '#16a34a' : job.matchScore >= 40 ? '#d97706' : '#dc2626'};
@@ -60,7 +64,7 @@ async function sendJobAlertEmail(user, jobs) {
         </span>
       </td>
       <td style="padding:12px 16px;border-bottom:1px solid #1e1e2e;text-align:center;">
-        <a href="${job.apply_url}" style="background:#7c3aed;color:#fff;padding:6px 16px;
+        <a href="${esc(job.apply_url)}" style="background:#7c3aed;color:#fff;padding:6px 16px;
           border-radius:8px;text-decoration:none;font-size:13px;font-weight:600;">
           Apply →
         </a>
@@ -82,11 +86,11 @@ async function sendJobAlertEmail(user, jobs) {
         <div style="background:#111118;border:1px solid #1e1e2e;border-radius:16px;overflow:hidden;">
           <div style="padding:20px 24px;border-bottom:1px solid #1e1e2e;">
             <h2 style="color:#fff;margin:0;font-size:18px;">
-              👋 Hi ${user.name}, here are your top matches today
+              👋 Hi ${esc(user.name)}, here are your top matches today
             </h2>
             <p style="color:#a1a1aa;margin:8px 0 0;font-size:14px;">
               Based on your skills: <strong style="color:#c084fc;">
-                ${(user.skills || []).slice(0, 5).join(', ')}
+                ${esc((user.skills || []).slice(0, 5).join(', '))}
               </strong>
             </p>
           </div>
@@ -103,7 +107,7 @@ async function sendJobAlertEmail(user, jobs) {
           </table>
 
           <div style="padding:20px 24px;text-align:center;">
-            <a href="http://localhost:3000/jobs" style="background:linear-gradient(135deg,#7c3aed,#db2777);
+            <a href="${APP_URL}/jobs" style="background:linear-gradient(135deg,#7c3aed,#db2777);
               color:#fff;padding:12px 32px;border-radius:12px;text-decoration:none;
               font-weight:700;font-size:15px;display:inline-block;">
               Browse All Jobs →
@@ -113,7 +117,7 @@ async function sendJobAlertEmail(user, jobs) {
 
         <p style="color:#374151;font-size:12px;text-align:center;margin-top:24px;">
           You're receiving this because you have job alerts enabled.
-          <a href="http://localhost:3000/dashboard" style="color:#6b7280;">Manage preferences</a>
+          <a href="${APP_URL}/dashboard" style="color:#6b7280;">Manage preferences</a>
         </p>
       </div>
     </body>
@@ -132,15 +136,16 @@ async function sendJobAlertEmail(user, jobs) {
 
 // ── WhatsApp alert (CallMeBot — FREE) ────────────────────────────────────────
 async function sendWhatsAppAlert(user, jobs) {
-  if (!jobs.length || !user.contact || !process.env.CALLMEBOT_API_KEY) return;
+  const phone = user.phone || user.contact;
+  if (!jobs.length || !phone || !process.env.CALLMEBOT_API_KEY) return;
 
   const jobLines = jobs.slice(0, 5).map((j, i) =>
     `${i + 1}. ${j.title} @ ${j.company} | ${Math.round(j.matchScore || 0)}% match`
   ).join('\n');
 
-  const message = `HireEasy Job Alert 🎯\n\nHi ${user.name}! Top ${Math.min(jobs.length, 5)} matches:\n\n${jobLines}\n\nView all: http://localhost:3000/jobs`;
+  const message = `HireEasy Job Alert 🎯\n\nHi ${user.name}! Top ${Math.min(jobs.length, 5)} matches:\n\n${jobLines}\n\nView all: ${APP_URL}/jobs`;
 
-  await sendCallMeBotWhatsApp(user.contact, message);
+  await sendCallMeBotWhatsApp(phone, message);
 }
 
 
@@ -157,14 +162,14 @@ async function sendInterviewReminder(user, interview) {
         <div style="background:#0d0d18;border-radius:12px;padding:16px;margin:16px 0;">
           <p style="color:#a1a1aa;margin:0 0 8px;font-size:13px;">INTERVIEW DETAILS</p>
           <p style="color:#fff;margin:4px 0;font-size:16px;font-weight:700;">
-            ${interview.company}
+            ${esc(interview.company)}
           </p>
-          <p style="color:#c084fc;margin:4px 0;">${interview.role}</p>
+          <p style="color:#c084fc;margin:4px 0;">${esc(interview.role)}</p>
           <p style="color:#a1a1aa;margin:4px 0;">📅 ${new Date(interview.scheduled_at).toLocaleString('en-IN')}</p>
-          <p style="color:#a1a1aa;margin:4px 0;">📍 ${interview.format}</p>
-          ${interview.link ? `<p style="margin:8px 0 0;"><a href="${interview.link}" style="color:#7c3aed;">🔗 Join Meeting</a></p>` : ''}
+          <p style="color:#a1a1aa;margin:4px 0;">📍 ${esc(interview.format)}</p>
+          ${interview.link ? `<p style="margin:8px 0 0;"><a href="${esc(interview.link)}" style="color:#7c3aed;">🔗 Join Meeting</a></p>` : ''}
         </div>
-        ${interview.notes ? `<p style="color:#6b7280;font-size:13px;">Notes: ${interview.notes}</p>` : ''}
+        ${interview.notes ? `<p style="color:#6b7280;font-size:13px;">Notes: ${esc(interview.notes)}</p>` : ''}
       </div>
     </body>
     </html>
@@ -173,7 +178,7 @@ async function sendInterviewReminder(user, interview) {
   await transporter.sendMail({
     from: `"HireEasy 🎯" <${process.env.EMAIL_USER}>`,
     to: user.email,
-    subject: `⏰ Reminder: Interview at ${interview.company} in 1 hour`,
+    subject: `⏰ Reminder: Interview at ${esc(interview.company)} in 1 hour`,
     html,
   });
 

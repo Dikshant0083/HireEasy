@@ -1,48 +1,53 @@
-const natural = require('natural');
+const { extractSkills, skillMatcher } = require('./resumeParser');
 
-const TfIdf = natural.TfIdf;
-const tokenizer = new natural.WordTokenizer();
+const jobText = (job) => [job.title, ...(job.tags || []), job.description || ''].join(' \n ');
 
-// Compute a match score (0-100) between user skills and a job
-function scoreJob(userSkills, job) {
-  if (!userSkills || userSkills.length === 0) return 50; // default score if no resume
-
-  const tfidf = new TfIdf();
-  const jobText = [job.title, job.description, ...(job.tags || [])].join(' ').toLowerCase();
-  tfidf.addDocument(jobText);
-
-  let totalScore = 0;
-  let matched = 0;
-
-  for (const skill of userSkills) {
-    const score = tfidf.tfidf(skill.toLowerCase(), 0);
-    if (score > 0) {
-      matched++;
-      totalScore += Math.min(score, 10); // cap per skill
-    }
+// Skills a job asks for, cached per job: extraction runs ~100 regexes over the description.
+// shortcut: cache is cleared at 5000 entries; switch to an LRU if job volume grows a lot.
+const jobSkillCache = new Map();
+function jobSkills(job) {
+  const key = `${job._id}:${job.updatedAt || job.posted_at || ''}`;
+  let skills = jobSkillCache.get(key);
+  if (!skills) {
+    if (jobSkillCache.size > 5000) jobSkillCache.clear();
+    skills = extractSkills(jobText(job));
+    jobSkillCache.set(key, skills);
   }
-
-  // Skill match ratio (0-60 points)
-  const skillRatio = userSkills.length > 0 ? matched / userSkills.length : 0;
-  const skillScore = Math.round(skillRatio * 60);
-
-  // Tag overlap bonus (0-40 points)
-  const jobTags = (job.tags || []).map(t => t.toLowerCase());
-  const userSkillsLower = userSkills.map(s => s.toLowerCase());
-  const tagOverlap = jobTags.filter(t =>
-    userSkillsLower.some(s => t.includes(s) || s.includes(t))
-  ).length;
-  const tagScore = Math.min(tagOverlap * 10, 40);
-
-  const finalScore = Math.min(skillScore + tagScore, 100);
-  return finalScore;
+  return skills;
 }
 
-function scoreAllJobs(userSkills, jobs) {
-  return jobs.map(job => ({
-    ...job,
-    matchScore: scoreJob(userSkills, job),
-  }));
+// With fewer named skills a percentage is noise: one mention of "Python" would read as a 100% match.
+const MIN_SKILLS_FOR_SCORE = 3;
+
+/**
+ * How much of what the job asks for the candidate has.
+ * Returns { score: 0-100 | null, matched, missing }. score is null when the
+ * listing names fewer than MIN_SKILLS_FOR_SCORE recognisable skills (e.g. most
+ * scholarships); matched/missing are still returned so the UI can list them.
+ */
+function matchDetails(userSkills, job) {
+  if (!userSkills?.length) return { score: null, matched: [], missing: [] };
+
+  const text = jobText(job);
+  const matched = userSkills.filter((s) => skillMatcher(s).test(text));
+  const have = new Set(matched.map((s) => s.toLowerCase()));
+  const missing = jobSkills(job).filter((s) => !have.has(s.toLowerCase()));
+  const required = matched.length + missing.length;
+
+  // Balance two questions (F1): how much of the listing you cover, and how much of your skillset it uses.
+  // Coverage alone ranks a 3-skill Java internship (2/3) above a full-stack role using 6 of your skills.
+  // Your side is capped at 10 skills so long resumes aren't penalised.
+  const coverage = required ? matched.length / required : 0;
+  const relevance = matched.length / Math.min(userSkills.length, 10);
+  const f1 = matched.length ? (2 * coverage * Math.min(relevance, 1)) / (coverage + Math.min(relevance, 1)) : 0;
+
+  return {
+    score: required >= MIN_SKILLS_FOR_SCORE ? Math.round(f1 * 100) : null,
+    matched,
+    missing,
+  };
 }
 
-module.exports = { scoreJob, scoreAllJobs };
+const scoreJob = (userSkills, job) => matchDetails(userSkills, job).score;
+
+module.exports = { scoreJob, matchDetails };

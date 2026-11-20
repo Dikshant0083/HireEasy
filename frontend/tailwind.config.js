@@ -1,47 +1,42 @@
 /** @type {import('tailwindcss').Config} */
+
+// Brand blue for actions, links, focus and selection.
+const accent = {
+  50: '#eff4ff', 100: '#dce7fe', 200: '#bcd1fc', 300: '#8eb1f8', 400: '#5a88f0',
+  500: '#3a6ae6', 600: '#2557d6', 700: '#1d45ad', 800: '#1d3b8a', 900: '#1d346e', 950: '#142146',
+};
+
+// Cool slate greys, the usual text palette for job portals.
+const neutral = {
+  50: '#f9fafb', 100: '#f2f4f7', 200: '#e4e7ec', 300: '#d0d5dd', 400: '#98a2b3',
+  500: '#667085', 600: '#475467', 700: '#344054', 800: '#1d2939', 900: '#101828', 950: '#0c111d',
+};
+
 module.exports = {
   content: ['./src/**/*.{js,jsx}', './public/index.html'],
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       colors: {
-        primary: {
-          50: '#f5f3ff',
-          100: '#ede9fe',
-          400: '#a78bfa',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          900: '#4c1d95',
-        },
-        dark: {
-          50: '#1a1a2e',
-          100: '#16213e',
-          200: '#0f3460',
-          300: '#12122a',
-          400: '#0d0d1a',
-          500: '#080810',
-        },
+        accent,
+        gray: neutral,
+        // Older markup used purple/violet/pink as the brand colour; map them to the accent.
+        purple: accent, violet: accent, pink: accent, fuchsia: accent, indigo: accent,
       },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'hero-gradient': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        'card-gradient': 'linear-gradient(145deg, rgba(139, 92, 246, 0.1), rgba(168, 85, 247, 0.05))',
+      fontSize: {
+        '2xs': ['11px', '16px'],
       },
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-in-out',
-        'slide-up': 'slideUp 0.4s ease-out',
-        'pulse-slow': 'pulse 3s ease-in-out infinite',
-        'score-fill': 'scoreFill 1s ease-out forwards',
+        'fade-in': 'fadeIn 180ms ease-out',
+        'slide-up': 'slideUp 220ms cubic-bezier(0.2, 0.8, 0.2, 1)',
       },
       keyframes: {
         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-        slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
-        scoreFill: { '0%': { width: '0%' }, '100%': { width: 'var(--score-width)' } },
+        slideUp: { '0%': { opacity: '0', transform: 'translateY(6px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
       },
-      backdropBlur: { xs: '2px' },
     },
   },
   plugins: [],
