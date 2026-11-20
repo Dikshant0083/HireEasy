@@ -1,544 +1,384 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import { ArrowRight, ArrowUpRight, FileText, Upload, Inbox, Bookmark } from 'lucide-react';
 import { setUser } from '../store/authSlice';
 import { userAPI, applicationsAPI, jobsAPI, alertsAPI } from '../services/api';
-import { 
-  Briefcase, CheckCircle, Bookmark, Brain, Edit2, AlertTriangle, Save, 
-  GraduationCap, Award, User, ClipboardList, Zap, FileText, Upload, 
-  Bell, Mail, Sunrise, Sun, Moon, File, MailWarning, MapPin, X, XCircle
-} from 'lucide-react';
+import { CompanyAvatar, Modal, Segmented, Spinner, TYPE_NAMES, timeAgo } from '../components/ui';
 
-const COURSES = ['B.Tech','M.Tech','BCA','MCA','B.Sc','M.Sc','MBA','B.Com','B.E','M.E','Ph.D','Diploma','Other'];
-const DEGREES = ['CSE','ECE','EEE','Mechanical','Civil','Chemical','IT','Data Science','AI & ML','Biotechnology','Physics','Mathematics','Commerce','Management','Other'];
+const COURSES = ['B.Tech', 'B.E', 'M.Tech', 'M.E', 'BCA', 'MCA', 'B.Sc', 'M.Sc', 'MBA', 'B.Com', 'Ph.D', 'Diploma'];
+const DEGREES = ['CSE', 'IT', 'ECE', 'EEE', 'Mechanical', 'Civil', 'Chemical', 'Data Science', 'AI & ML', 'Biotechnology', 'Physics', 'Mathematics', 'Commerce', 'Management'];
 
-// ────────────────────────────────────────────────────────────────────────────
-// Stat Card
-// ────────────────────────────────────────────────────────────────────────────
-function StatCard({ icon, value, label, color = 'purple' }) {
-  const colors = {
-    purple: 'from-purple-600/20 to-purple-500/5 border-purple-500/20',
-    green:  'from-green-600/20  to-green-500/5  border-green-500/20',
-    blue:   'from-blue-600/20   to-blue-500/5   border-blue-500/20',
-    yellow: 'from-yellow-600/20 to-yellow-500/5 border-yellow-500/20',
-  };
+function Card({ title, action, children, className = '' }) {
   return (
-    <div className={`rounded-2xl border bg-gradient-to-br p-5 ${colors[color]}`}>
-      <div className="text-2xl mb-2">{icon}</div>
-      <div className="text-2xl font-bold text-white">{value}</div>
-      <div className="text-gray-400 text-xs mt-0.5">{label}</div>
-    </div>
+    <section className={`glass-card ${className}`}>
+      <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-3.5">
+        <h2 className="section-title">{title}</h2>
+        {action}
+      </div>
+      <div className="p-5">{children}</div>
+    </section>
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Profile Edit Modal
-// ────────────────────────────────────────────────────────────────────────────
+function Message({ msg }) {
+  if (!msg) return null;
+  return <p className={`mt-3 text-xs ${msg.ok ? 'text-emerald-600' : 'text-red-600'}`} role="status">{msg.text}</p>;
+}
+
 function ProfileModal({ user, onClose, onSave }) {
   const [form, setForm] = useState({
-    name:   user?.name   || '',
-    phone:  user?.phone  || '',
-    course: user?.course || '',
-    degree: user?.degree || '',
-    cgpa:   user?.cgpa   ?? '',
+    name: user?.name || '', phone: user?.phone || '', course: user?.course || '', degree: user?.degree || '', cgpa: user?.cgpa ?? '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.name.trim()) return setError('Name can’t be empty.');
+    if (form.cgpa !== '' && (Number(form.cgpa) < 0 || Number(form.cgpa) > 10)) return setError('CGPA must be between 0 and 10.');
     setSaving(true);
     setError('');
     try {
-      const res = await userAPI.updateProfile({ ...form, cgpa: form.cgpa !== '' ? form.cgpa : undefined });
+      const res = await userAPI.updateProfile({ ...form, name: form.name.trim(), cgpa: form.cgpa !== '' ? form.cgpa : undefined });
       onSave(res.data.user);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Update failed');
+      setError(err.response?.data?.message || 'Couldn’t save your profile.');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
-      <div className="glass-card p-8 w-full max-w-md animate-slide-up">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="flex items-center gap-2 text-white font-bold text-lg">
-            <Edit2 size={20} className="text-purple-400" /> Edit Profile
-          </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-            <X size={20} />
-          </button>
+    <Modal title="Edit profile" onClose={onClose}>
+      {error && <div className="alert-error mb-4" role="alert">{error}</div>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="p-name" className="form-label">Full name</label>
+          <input id="p-name" value={form.name} onChange={set('name')} className="input-field" autoComplete="name" />
         </div>
-
-        {error && (
-          <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
-            <AlertTriangle size={16} /> {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="p-phone" className="form-label">Phone</label>
+          <input id="p-phone" type="tel" value={form.phone} onChange={set('phone')} className="input-field" placeholder="+91 98765 43210" autoComplete="tel" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-gray-400 mb-1.5 font-medium">Full Name</label>
-            <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-              className="input-field" placeholder="Your full name" />
+            <label htmlFor="p-course" className="form-label">Course</label>
+            <input id="p-course" list="courses" value={form.course} onChange={set('course')} className="input-field" />
+            <datalist id="courses">{COURSES.map((c) => <option key={c} value={c} />)}</datalist>
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1.5 font-medium">Contact Number</label>
-            <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-              className="input-field" placeholder="+91 98765 43210" />
+            <label htmlFor="p-degree" className="form-label">Branch</label>
+            <input id="p-degree" list="degrees" value={form.degree} onChange={set('degree')} className="input-field" />
+            <datalist id="degrees">{DEGREES.map((d) => <option key={d} value={d} />)}</datalist>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5 font-medium">Course</label>
-              <input list="courses" value={form.course} onChange={e => setForm({...form, course: e.target.value})}
-                className="input-field" placeholder="Select or type..." />
-              <datalist id="courses">
-                {COURSES.map(c => <option key={c} value={c} />)}
-              </datalist>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5 font-medium">Branch/Degree</label>
-              <input list="degrees" value={form.degree} onChange={e => setForm({...form, degree: e.target.value})}
-                className="input-field" placeholder="Select or type..." />
-              <datalist id="degrees">
-                {DEGREES.map(d => <option key={d} value={d} />)}
-              </datalist>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5 font-medium">CGPA (out of 10)</label>
-            <input type="number" step="0.01" min="0" max="10"
-              value={form.cgpa} onChange={e => setForm({...form, cgpa: e.target.value})}
-              className="input-field" placeholder="e.g. 8.5" />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary flex-1 text-sm py-2.5">
-              Cancel
-            </button>
-            <button type="submit" disabled={saving} className="btn-primary flex flex-1 items-center justify-center gap-2 text-sm py-2.5 disabled:opacity-50">
-              {saving ? 'Saving...' : <><Save size={16} /> Save Changes</>}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+        <div>
+          <label htmlFor="p-cgpa" className="form-label">CGPA <span className="font-normal text-gray-400">· out of 10</span></label>
+          <input id="p-cgpa" type="number" step="0.01" min="0" max="10" value={form.cgpa} onChange={set('cgpa')} className="input-field" />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
+          <button type="submit" disabled={saving} className="btn-primary">{saving ? <><Spinner /> Saving</> : 'Save changes'}</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Applied Job Row
-// ────────────────────────────────────────────────────────────────────────────
-function AppliedJobRow({ app }) {
+function ActivityRow({ app }) {
   const job = app.job_id || app.job_snapshot || {};
-  const TYPE_ICON = { 
-    job: <Briefcase size={16} />, 
-    internship: <GraduationCap size={16} />, 
-    scholarship: <Award size={16} /> 
-  };
-
+  const id = app.job_id?._id;
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-white/5 last:border-0">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-purple-400 flex-shrink-0"
-          style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)' }}>
-          {TYPE_ICON[job.type] || <Briefcase size={16} />}
-        </div>
-        <div className="min-w-0">
-          <p className="text-white text-sm font-medium truncate">{job.title || 'Unknown'}</p>
-          <p className="text-gray-500 text-xs">{job.company || ''} {job.location ? `· ${job.location}` : ''}</p>
-        </div>
+    <li className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+      <CompanyAvatar company={job.company} size={32} />
+      <div className="min-w-0 flex-1">
+        {id
+          ? <Link to={`/jobs/${id}`} className="block truncate text-[13px] font-medium text-gray-900 hover:underline hover:underline-offset-4">{job.title || 'Untitled listing'}</Link>
+          : <p className="truncate text-[13px] font-medium text-gray-900">{job.title || 'Untitled listing'}</p>}
+        <p className="truncate text-xs text-gray-500">{[job.company, TYPE_NAMES[job.type]].filter(Boolean).join(' · ')}</p>
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0">
-        <span className={`flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-medium ${
-          app.action === 'applied'
-            ? 'bg-green-500/15 text-green-400 border border-green-500/20'
-            : 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/20'
-        }`}>
-          {app.action === 'applied' ? <><CheckCircle size={12} /> Applied</> : <><Bookmark size={12} /> Saved</>}
-        </span>
-        {job.apply_url && (
-          <a href={job.apply_url} target="_blank" rel="noopener noreferrer"
-            className="text-purple-400 hover:text-purple-300 text-xs transition-colors">
-            Open →
-          </a>
-        )}
-      </div>
-    </div>
+      <span className="num hidden flex-shrink-0 text-xs text-gray-500 sm:block">{timeAgo(app.createdAt)}</span>
+      {job.apply_url && (
+        <a href={job.apply_url} target="_blank" rel="noopener noreferrer" className="btn-icon flex-shrink-0" aria-label={`Open ${job.title} listing`}>
+          <ArrowUpRight size={15} />
+        </a>
+      )}
+    </li>
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Main Dashboard
-// ────────────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useSelector((s) => s.auth);
   const dispatch = useDispatch();
-  const fileRef = useRef(null);
   const csvRef = useRef(null);
   const resumeRef = useRef(null);
 
-  const [stats, setStats]         = useState({ applied: 0, saved: 0, jobs: 0 });
-  const [applications, setApplications] = useState([]);
-  const [appTab, setAppTab]       = useState('applied');
+  const [applications, setApplications] = useState(null);
+  const [liveCount, setLiveCount] = useState(null);
+  const [appTab, setAppTab] = useState('applied');
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [csvFile, setCsvFile]     = useState(null);
-  const [csvLoading, setCsvLoading] = useState(false);
-  const [csvMsg, setCsvMsg]       = useState('');
-  const [resumeFile, setResumeFile] = useState(null);
   const [resumeLoading, setResumeLoading] = useState(false);
-  const [resumeMsg, setResumeMsg] = useState('');
-
+  const [resumeMsg, setResumeMsg] = useState(null);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [csvMsg, setCsvMsg] = useState(null);
   const [alertLoading, setAlertLoading] = useState(false);
-  const [testEmailMsg, setTestEmailMsg] = useState('');
+  const [testEmail, setTestEmail] = useState({ sending: false, msg: null });
 
+  useEffect(() => {
+    applicationsAPI.getApplications({})
+      .then((res) => setApplications(res.data.applications))
+      .catch(() => setApplications([]));
+    jobsAPI.getJobs({ limit: 1 }).then((res) => setLiveCount(res.data.total)).catch(() => setLiveCount(0));
+  }, []);
+
+  const counts = useMemo(() => ({
+    applied: applications?.filter((a) => a.action === 'applied').length ?? 0,
+    saved: applications?.filter((a) => a.action === 'saved').length ?? 0,
+  }), [applications]);
+  const shownApps = (applications || []).filter((a) => a.action === appTab);
+
+  const emailAlerts = !!user?.alert_preferences?.email_alerts;
   const toggleEmailAlerts = async () => {
     setAlertLoading(true);
     try {
-      const isEnabled = user?.alert_preferences?.email_alerts;
-      const res = await alertsAPI.updatePreferences({ email_alerts: !isEnabled, whatsapp_alerts: user?.alert_preferences?.whatsapp_alerts });
+      const res = await alertsAPI.updatePreferences({ email_alerts: !emailAlerts, whatsapp_alerts: !!user?.alert_preferences?.whatsapp_alerts });
       dispatch(setUser({ ...user, alert_preferences: res.data.preferences }));
-    } catch (err) {
-      console.error('Toggle failed:', err);
-    } finally {
-      setAlertLoading(false);
-    }
+    } catch (_) {} finally { setAlertLoading(false); }
   };
 
   const handleTestEmail = async () => {
-    setTestEmailMsg('Sending...');
+    setTestEmail({ sending: true, msg: null });
     try {
       const res = await alertsAPI.testEmail();
-      setTestEmailMsg(`✅ ${res.data.message}`);
-      setTimeout(() => setTestEmailMsg(''), 5000);
+      setTestEmail({ sending: false, msg: { ok: true, text: res.data.message } });
     } catch (err) {
-      setTestEmailMsg(`❌ ${err.response?.data?.message || 'Failed'}`);
+      setTestEmail({ sending: false, msg: { ok: false, text: err.response?.data?.message || 'Couldn’t send the test email.' } });
     }
   };
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [appliedRes, savedRes, jobsRes, appsRes] = await Promise.allSettled([
-          applicationsAPI.getApplications({ action: 'applied' }),
-          applicationsAPI.getApplications({ action: 'saved' }),
-          jobsAPI.getJobs({ limit: 1 }),
-          applicationsAPI.getApplications({}),
-        ]);
-        setStats({
-          applied: appliedRes.status === 'fulfilled' ? appliedRes.value.data.applications.length : 0,
-          saved:   savedRes.status === 'fulfilled'   ? savedRes.value.data.applications.length   : 0,
-          jobs:    jobsRes.status === 'fulfilled'    ? jobsRes.value.data.total                  : 0,
-        });
-        if (appsRes.status === 'fulfilled') {
-          setApplications(appsRes.value.data.applications);
-        }
-      } catch (_) {}
-    }
-    loadData();
-  }, []);
-
-  // Filter applications by tab
-  const filteredApps = applications.filter(a => a.action === appTab);
-
-  const handleResumeUpload = async () => {
-    if (!resumeFile) return;
+  const handleResume = async (file) => {
+    if (!file) return;
     setResumeLoading(true);
-    setResumeMsg('');
+    setResumeMsg(null);
     try {
       const fd = new FormData();
-      fd.append('resume', resumeFile);
+      fd.append('resume', file);
       const res = await userAPI.uploadResume(fd);
       dispatch(setUser(res.data.user));
-      setResumeMsg(`✅ Detected ${res.data.extractedSkills.length} skills: ${res.data.extractedSkills.slice(0, 5).join(', ')}${res.data.extractedSkills.length > 5 ? '...' : ''}`);
-      setResumeFile(null);
+      const n = res.data.extractedSkills.length;
+      setResumeMsg(n
+        ? { ok: true, text: `Found ${n} skill${n === 1 ? '' : 's'} in ${file.name}.` }
+        : { ok: false, text: 'No recognisable skills found. Make sure the file has selectable text, not a scanned image.' });
     } catch (err) {
-      setResumeMsg(`❌ ${err.response?.data?.message || 'Upload failed'}`);
+      setResumeMsg({ ok: false, text: err.response?.data?.message || 'Upload failed.' });
     } finally {
       setResumeLoading(false);
+      if (resumeRef.current) resumeRef.current.value = '';
     }
   };
 
-  const handleCsvUpload = async () => {
-    if (!csvFile) return;
+  const handleCsv = async (file) => {
+    if (!file) return;
     setCsvLoading(true);
-    setCsvMsg('');
+    setCsvMsg(null);
     try {
       const fd = new FormData();
-      fd.append('csv', csvFile);
+      fd.append('csv', file);
       const res = await jobsAPI.uploadCSV(fd);
-      setCsvMsg(`✅ ${res.data.message}`);
-      setCsvFile(null);
+      setCsvMsg({ ok: true, text: res.data.message + (res.data.errors?.length ? ` (${res.data.errors.length} rows skipped)` : '') });
     } catch (err) {
-      setCsvMsg(`❌ ${err.response?.data?.message || 'Upload failed'}`);
+      setCsvMsg({ ok: false, text: err.response?.data?.message || 'Import failed.' });
     } finally {
       setCsvLoading(false);
+      if (csvRef.current) csvRef.current.value = '';
     }
   };
 
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
+  const firstName = user?.name?.split(' ')[0] || 'there';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const academics = [user?.course, user?.degree, user?.cgpa ? `CGPA ${user.cgpa}` : null].filter(Boolean).join(' · ');
+  const skills = user?.skills || [];
+  const checklist = [
+    ['phone number', !!user?.phone],
+    ['course', !!user?.course],
+    ['branch', !!user?.degree],
+    ['CGPA', user?.cgpa !== null && user?.cgpa !== undefined],
+    ['resume', skills.length > 0],
+  ];
+  const missing = checklist.filter(([, ok]) => !ok).map(([label]) => label);
+  const completeness = Math.round(((checklist.length - missing.length + 1) / (checklist.length + 1)) * 100); // +1: name/email always set
 
   return (
-    <div className="page-bg pt-20 pb-10 px-4 min-h-screen">
-      {showProfileModal && (
-        <ProfileModal
-          user={user}
-          onClose={() => setShowProfileModal(false)}
-          onSave={(u) => dispatch(setUser(u))}
-        />
-      )}
+    <div className="page">
+      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} onSave={(u) => dispatch(setUser(u))} />}
 
-      <div className="max-w-6xl mx-auto animate-fade-in">
-        {/* ── Welcome header ─────────────────────────────────────── */}
-        <div className="flex items-start justify-between mb-7 flex-wrap gap-3">
-          <div>
-            <p className="flex items-center gap-2 text-gray-400 text-sm">
-              {greeting() === 'Good morning' ? <Sunrise size={16} className="text-yellow-400" /> : 
-               greeting() === 'Good afternoon' ? <Sun size={16} className="text-yellow-400" /> : 
-               <Moon size={16} className="text-blue-300" />} 
-              {greeting()},
-            </p>
-            <h1 className="text-3xl font-bold text-white mt-0.5">{user?.name?.split(' ')[0] || 'There'}</h1>
-            {(user?.course || user?.degree) && (
-              <p className="flex items-center gap-1.5 text-gray-500 text-sm mt-1">
-                <GraduationCap size={14} /> {[user.course, user.degree].filter(Boolean).join(' · ')}
-                {user?.cgpa ? ` · CGPA ${user.cgpa}` : ''}
-              </p>
-            )}
-          </div>
-          <button onClick={() => setShowProfileModal(true)} className="btn-secondary flex items-center gap-2 text-sm py-2 px-4">
-            <Edit2 size={14} /> Edit Profile
-          </button>
-        </div>
+      <div className="page-inner animate-fade-in">
+        <div className="grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_300px]">
+          <aside className="lg:sticky lg:top-20">
+            <div className="glass-card overflow-hidden">
+              <div className="h-16 bg-[linear-gradient(120deg,#dce7fe,#eef4ff_60%,#e9f8f0)]" />
+              <div className="-mt-9 px-5 pb-5">
+                <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full border-4 border-white bg-accent-600 text-2xl font-bold text-white">
+                  {(user?.name || '?').split(/\s+/).map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
+                </span>
+                <h1 className="mt-2 text-[18px] font-bold leading-tight">{user?.name}</h1>
+                <p className="mt-0.5 text-[13px] text-gray-600">{academics || 'Add your course and branch'}</p>
+                <p className="mt-0.5 truncate text-xs text-gray-500">{user?.email}</p>
 
-        {/* ── Stats ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
-          <StatCard icon={<Briefcase size={24} />} value={stats.jobs.toLocaleString()} label="Live Opportunities" color="purple" />
-          <StatCard icon={<CheckCircle size={24} />} value={stats.applied}              label="Jobs Applied"         color="green"  />
-          <StatCard icon={<Bookmark size={24} />} value={stats.saved}                label="Jobs Saved"           color="yellow" />
-          <StatCard icon={<Brain size={24} />} value={user?.skills?.length || 0}  label="Skills Detected"      color="blue"   />
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* ── Left column ────────────────────────────────────── */}
-          <div className="lg:col-span-2 space-y-5">
-            {/* Profile summary */}
-            <div className="glass-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="flex items-center gap-2 text-white font-semibold">
-                  <User size={18} className="text-blue-400" /> My Profile
-                </h2>
-                <button onClick={() => setShowProfileModal(true)}
-                  className="text-xs text-purple-400 hover:text-purple-300">Edit →</button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: 'Email',   value: user?.email  },
-                  { label: 'Phone',   value: user?.phone  || '—' },
-                  { label: 'Course',  value: user?.course || '—' },
-                  { label: 'Branch',  value: user?.degree || '—' },
-                  { label: 'CGPA',    value: user?.cgpa   ?? '—' },
-                  { label: 'Auth',    value: user?.provider === 'google' ? '🔵 Google' : '📧 Email' },
-                ].map(item => (
-                  <div key={item.label} className="p-3 rounded-xl bg-white/3 border border-white/5">
-                    <p className="text-gray-500 text-[10px] uppercase tracking-wide mb-0.5">{item.label}</p>
-                    <p className="text-white text-sm font-medium truncate">{item.value}</p>
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-gray-700">Profile strength</span>
+                    <span className="num font-semibold text-accent-700">{completeness}%</span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Applied jobs record */}
-            <div className="glass-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="flex items-center gap-2 text-white font-semibold">
-                  <ClipboardList size={18} className="text-green-400" /> Application History
-                </h2>
-                <div className="flex gap-1">
-                  {[
-                    { v: 'applied', l: <><CheckCircle size={14} /> Applied</> },
-                    { v: 'saved',   l: <><Bookmark size={14} /> Saved</> },
-                  ].map(t => (
-                    <button key={t.v} onClick={() => setAppTab(t.v)}
-                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                        appTab === t.v ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white'
-                      }`}>
-                      {t.l}
-                    </button>
-                  ))}
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                    <div className="h-full rounded-full bg-accent-600 transition-[width]" style={{ width: `${completeness}%` }} />
+                  </div>
+                  {completeness < 100 && <p className="mt-1.5 text-xs text-gray-500">Add {missing.join(', ')} to complete it.</p>}
                 </div>
+                <button onClick={() => setShowProfileModal(true)} className="btn-secondary btn-sm mt-4 w-full">Edit profile</button>
               </div>
+              <dl className="border-t border-[var(--line)] text-[13px]">
+                {[
+                  ['Applied', applications ? counts.applied : '–', '/applications'],
+                  ['Saved jobs', applications ? counts.saved : '–', '/applications'],
+                  ['Skills on resume', skills.length, null],
+                ].map(([k, v, to]) => {
+                  const row = <><dt className="text-gray-600">{k}</dt><dd className="num font-semibold text-accent-700">{v}</dd></>;
+                  return to
+                    ? <Link key={k} to={to} className="flex justify-between px-5 py-2.5 hover:bg-gray-50">{row}</Link>
+                    : <div key={k} className="flex justify-between px-5 py-2.5">{row}</div>;
+                })}
+              </dl>
+            </div>
+          </aside>
 
-              {filteredApps.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="flex justify-center text-gray-500 mb-2">
-                    {appTab === 'applied' ? <MailWarning size={40} /> : <Bookmark size={40} />}
-                  </div>
-                  <p className="text-gray-400 text-sm">
-                    {appTab === 'applied' ? 'No applications yet' : 'No saved jobs yet'}
-                  </p>
-                  <Link to="/jobs" className="btn-primary text-xs py-2 px-4 mt-3 inline-block">
-                    Browse Jobs →
-                  </Link>
+          <div className="min-w-0 space-y-4">
+            <div className="glass-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[18px] font-bold text-gray-900">{greeting}, {firstName}</p>
+                <p className="mt-0.5 text-[13px] text-gray-600">
+                  {liveCount === null ? 'Checking for new openings…' : <><span className="num font-semibold text-gray-900">{liveCount.toLocaleString()}</span> opportunities are open right now.</>}
+                </p>
+              </div>
+              <Link to="/jobs" className="btn-primary flex-shrink-0">Find jobs <ArrowRight size={15} /></Link>
+            </div>
+            <Card
+              title="Activity"
+              action={<Segmented label="Activity" value={appTab} onChange={setAppTab} options={[
+                { value: 'applied', label: 'Applied', count: counts.applied },
+                { value: 'saved', label: 'Saved', count: counts.saved },
+              ]} />}
+            >
+              {applications === null ? (
+                <div className="space-y-4">{[0, 1, 2].map((i) => <div key={i} className="flex gap-3"><div className="skeleton h-8 w-8" /><div className="flex-1 space-y-1.5"><div className="skeleton h-3 w-1/2" /><div className="skeleton h-3 w-1/3" /></div></div>)}</div>
+              ) : shownApps.length === 0 ? (
+                <div className="flex flex-col items-center py-8 text-center">
+                  {appTab === 'applied' ? <Inbox size={20} className="text-gray-400" /> : <Bookmark size={20} className="text-gray-400" />}
+                  <p className="mt-3 text-[13px] text-gray-700">{appTab === 'applied' ? 'No applications yet' : 'Nothing saved yet'}</p>
+                  <p className="mt-1 text-xs text-gray-500">{appTab === 'applied' ? 'Listings you open with Apply show up here.' : 'Use the bookmark on any listing to keep it here.'}</p>
                 </div>
               ) : (
-                <div>
-                  {filteredApps.slice(0, 8).map(app => (
-                    <AppliedJobRow key={app._id} app={app} />
-                  ))}
-                  {filteredApps.length > 8 && (
-                    <Link to="/applications" className="block text-center text-purple-400 text-xs mt-3 hover:text-purple-300">
-                      View all {filteredApps.length} →
+                <>
+                  <ul className="divide-y divide-[var(--line)]">{shownApps.slice(0, 6).map((a) => <ActivityRow key={a._id} app={a} />)}</ul>
+                  {shownApps.length > 6 && (
+                    <Link to="/applications" className="mt-4 inline-flex items-center gap-1 text-[13px] text-gray-600 hover:text-gray-900">
+                      View all {shownApps.length} <ArrowRight size={13} />
                     </Link>
                   )}
-                </div>
+                </>
               )}
-            </div>
+            </Card>
 
-            {/* Quick actions */}
-            <div className="glass-card p-6">
-              <h2 className="flex items-center gap-2 text-white font-semibold mb-4">
-                <Zap size={18} className="text-yellow-400" /> Quick Actions
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Card title="Profile" action={<button onClick={() => setShowProfileModal(true)} className="text-xs text-gray-600 hover:text-gray-900">Edit</button>}>
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-[13px] sm:grid-cols-2">
                 {[
-                  { to: '/jobs',               icon: <Briefcase size={18} />, label: 'Browse Live Jobs',    color: 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400' },
-                  { to: '/jobs?type=internship',icon: <GraduationCap size={18} />, label: 'Find Internships',    color: 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400' },
-                  { to: '/jobs?type=scholarship',icon:<Award size={18} />, label: 'Explore Scholarships',color: 'bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400' },
-                  { to: '/applications',        icon: <ClipboardList size={18} />, label: 'My Applications',    color: 'bg-green-500/10 hover:bg-green-500/20 text-green-400'  },
-                ].map(a => (
-                  <Link key={a.to} to={a.to}
-                    className={`flex items-center gap-3 p-4 rounded-xl transition-colors group ${a.color}`}>
-                    <span>{a.icon}</span>
-                    <span className="text-gray-300 text-sm font-medium group-hover:text-white">{a.label}</span>
-                  </Link>
+                  ['Email', user?.email],
+                  ['Phone', user?.phone],
+                  ['Course', user?.course],
+                  ['Branch', user?.degree],
+                  ['CGPA', user?.cgpa],
+                  ['Sign-in', user?.provider === 'google' ? 'Google' : 'Email and password'],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-4 border-b border-[var(--line)] pb-3 sm:block sm:border-0 sm:pb-0">
+                    <dt className="text-gray-500">{k}</dt>
+                    <dd className={`truncate sm:mt-0.5 ${v ? 'text-gray-800' : 'text-gray-400'}`}>{v ?? 'Not set'}</dd>
+                  </div>
                 ))}
-              </div>
-            </div>
+              </dl>
+            </Card>
           </div>
 
-          {/* ── Right column ───────────────────────────────────── */}
-          <div className="space-y-5">
-            {/* Skills card */}
-            <div className="glass-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="flex items-center gap-2 text-white font-semibold">
-                  <Brain size={18} className="text-blue-400" /> Skills
-                </h2>
-                <button onClick={() => resumeRef.current?.click()}
-                  className="text-xs text-purple-400 hover:text-purple-300">Update Resume →</button>
-              </div>
-              {user?.skills?.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {user.skills.map((s, i) => (
-                    <span key={i} className="px-2.5 py-1 rounded-lg text-xs bg-purple-500/15 text-purple-300 border border-purple-500/20">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-5">
-                  <div className="flex justify-center text-gray-500 mb-2">
-                    <FileText size={32} />
-                  </div>
-                  <p className="text-gray-400 text-sm mb-3">Upload resume to auto-detect skills</p>
-                  <button onClick={() => resumeRef.current?.click()} className="btn-primary text-xs py-2 px-4">
-                    Upload Resume
-                  </button>
-                </div>
-              )}
-              <input ref={resumeRef} type="file" accept=".pdf,.docx,.doc" className="hidden"
-                onChange={(e) => setResumeFile(e.target.files[0])} />
-              {resumeFile && (
-                <div className="mt-3 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                  <p className="flex items-center gap-1.5 text-purple-300 text-xs mb-2">
-                    <FileText size={14} /> {resumeFile.name}
-                  </p>
-                  <button onClick={handleResumeUpload} disabled={resumeLoading}
-                    className="btn-primary flex items-center justify-center gap-2 text-xs py-1.5 px-4 w-full disabled:opacity-50">
-                    {resumeLoading ? 'Parsing...' : 'Parse & Update Skills'}
-                  </button>
-                </div>
-              )}
-              {resumeMsg && <p className="text-xs mt-2 text-gray-300">{resumeMsg}</p>}
-              {user?.resume_original_name && (
-                <p className="text-[10px] text-gray-600 mt-3">
-                  📎 Current: {user.resume_original_name}
-                </p>
-              )}
-            </div>
-
-            {/* Alerts & Notifications */}
-            <div className="glass-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="flex items-center gap-2 text-white font-semibold">
-                  <Bell size={18} className="text-orange-400" /> Alerts & Notifications
-                </h2>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 mb-3">
-                <div>
-                  <p className="text-white text-sm font-medium">Daily Email Alerts</p>
-                  <p className="text-gray-400 text-xs mt-0.5">Get matched jobs straight to your inbox</p>
-                </div>
-                <button 
-                  onClick={toggleEmailAlerts} 
-                  disabled={alertLoading}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${user?.alert_preferences?.email_alerts ? 'bg-purple-600' : 'bg-gray-600'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user?.alert_preferences?.email_alerts ? 'translate-x-6' : 'translate-x-1'}`} />
+          <div className="space-y-4 lg:col-start-2 xl:col-start-auto">
+            <Card
+              title="Skills"
+              action={skills.length > 0 && (
+                <button onClick={() => resumeRef.current?.click()} disabled={resumeLoading} className="text-xs text-gray-600 hover:text-gray-900">
+                  {resumeLoading ? 'Reading…' : 'Replace resume'}
                 </button>
-              </div>
-              {user?.alert_preferences?.email_alerts && (
-                <div>
-                  <button onClick={handleTestEmail} className="btn-secondary flex items-center justify-center gap-2 w-full text-xs py-2 mt-2">
-                    <Mail size={14} /> Send Test Email Now
-                  </button>
-                  {testEmailMsg && (
-                    <p className={`flex items-center justify-center gap-1 text-[10px] text-center mt-2 ${
-                      testEmailMsg === 'Sending...' ? 'text-gray-400' :
-                      testEmailMsg.includes('✅') ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {testEmailMsg === 'Sending...' ? null :
-                       testEmailMsg.includes('✅') ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                      {testEmailMsg.replace('✅', '').replace('❌', '')}
-                    </p>
+              )}
+            >
+              {skills.length > 0 ? (
+                <>
+                  <div className="flex flex-wrap gap-1">{skills.map((s) => <span key={s} className="tag">{s}</span>)}</div>
+                  {user?.resume_original_name && (
+                    <p className="mt-4 flex items-center gap-1.5 truncate text-xs text-gray-500"><FileText size={12} /> {user.resume_original_name}</p>
                   )}
+                </>
+              ) : (
+                <div className="text-center">
+                  <p className="text-[13px] text-gray-700">Add your resume to unlock match scores</p>
+                  <p className="mt-1 text-xs text-gray-500">We read the skills from it. PDF, DOCX or TXT.</p>
+                  <button onClick={() => resumeRef.current?.click()} disabled={resumeLoading} className="btn-primary btn-sm mt-4">
+                    {resumeLoading ? <><Spinner /> Reading resume</> : <><Upload size={14} /> Upload resume</>}
+                  </button>
                 </div>
               )}
-            </div>
+              <input ref={resumeRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={(e) => handleResume(e.target.files[0])} />
+              <Message msg={resumeMsg} />
+            </Card>
 
-            {/* CSV Upload */}
-            <div className="glass-card p-6">
-              <h2 className="flex items-center gap-2 text-white font-semibold mb-1">
-                <Upload size={18} className="text-green-400" /> Upload Job CSV
-              </h2>
-              <p className="text-gray-500 text-xs mb-3">
-                Columns: title, company, apply_url, type, location, salary, description, tags, is_remote
-              </p>
-              <div className="drop-zone p-4 text-center cursor-pointer"
-                onClick={() => csvRef.current?.click()}>
-                {csvFile
-                  ? <p className="flex justify-center items-center gap-1.5 text-purple-300 text-sm"><FileText size={16} /> {csvFile.name}</p>
-                  : <p className="text-gray-500 text-xs">Click to select CSV file</p>}
-              </div>
-              <input ref={csvRef} type="file" accept=".csv" className="hidden"
-                onChange={(e) => { setCsvFile(e.target.files[0]); setCsvMsg(''); }} />
-              {csvFile && (
-                <button onClick={handleCsvUpload} disabled={csvLoading}
-                  className="btn-primary flex items-center justify-center gap-2 w-full mt-3 text-sm py-2 disabled:opacity-50">
-                  {csvLoading ? 'Importing...' : <><Upload size={16} /> Import CSV</>}
+            <Card title="Email alerts">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[13px] text-gray-800">Daily digest</p>
+                  <p className="mt-0.5 text-xs text-gray-500">Your best new matches, every morning at 9:00 IST.</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={emailAlerts}
+                  aria-label="Daily email digest"
+                  onClick={toggleEmailAlerts}
+                  disabled={alertLoading}
+                  className={`relative mt-0.5 h-5 w-9 flex-shrink-0 rounded-full transition-colors disabled:opacity-50 ${emailAlerts ? 'bg-accent-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${emailAlerts ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
                 </button>
+              </div>
+              {emailAlerts && (
+                <>
+                  <button onClick={handleTestEmail} disabled={testEmail.sending} className="btn-secondary btn-sm mt-4 w-full">
+                    {testEmail.sending ? <><Spinner /> Sending</> : 'Send a test email'}
+                  </button>
+                  <Message msg={testEmail.msg} />
+                </>
               )}
-              {csvMsg && <p className="text-xs mt-2 text-gray-300">{csvMsg}</p>}
-            </div>
+            </Card>
+
+            <Card title="Import listings">
+              <p className="text-xs leading-relaxed text-gray-500">
+                CSV with <code className="font-mono text-gray-600">title</code> and <code className="font-mono text-gray-600">apply_url</code>. Optional: company, type, location, salary, description, tags, is_remote.
+              </p>
+              <button onClick={() => csvRef.current?.click()} disabled={csvLoading} className="btn-secondary btn-sm mt-4 w-full">
+                {csvLoading ? <><Spinner /> Importing</> : <><Upload size={14} /> Choose CSV file</>}
+              </button>
+              <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={(e) => handleCsv(e.target.files[0])} />
+              <Message msg={csvMsg} />
+            </Card>
           </div>
         </div>
       </div>

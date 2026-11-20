@@ -18,7 +18,14 @@ const storage = multer.diskStorage({
     cb(null, `${unique}${path.extname(file.originalname)}`);
   },
 });
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = ['.pdf', '.docx', '.txt'].includes(path.extname(file.originalname).toLowerCase());
+    cb(ok ? null : Object.assign(new Error('Upload a PDF, DOCX or TXT file'), { statusCode: 400 }), ok);
+  },
+});
 
 // GET /api/user/profile
 router.get('/profile', authenticate, async (req, res, next) => {
@@ -36,9 +43,15 @@ router.patch('/profile', authenticate, async (req, res, next) => {
     if (phone !== undefined) updates.phone = phone;
     if (course !== undefined) updates.course = course;
     if (degree !== undefined) updates.degree = degree;
-    if (cgpa !== undefined && cgpa !== '') updates.cgpa = parseFloat(cgpa);
+    if (cgpa !== undefined && cgpa !== '' && cgpa !== null) {
+      const n = Number(cgpa);
+      if (!Number.isFinite(n) || n < 0 || n > 10) {
+        return res.status(400).json({ success: false, message: 'CGPA must be a number between 0 and 10.' });
+      }
+      updates.cgpa = n;
+    }
     if (skills && Array.isArray(skills)) updates.skills = skills;
-    updates.profile_complete = !!(updates.name || req.user.name) && !!(updates.course || req.user.course);
+    updates.profile_complete = !!(updates.name || req.user.name) && !!(updates.course || updates.degree || req.user.course || req.user.degree);
 
     const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true });
     res.json({ success: true, user });

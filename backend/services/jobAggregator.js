@@ -16,6 +16,7 @@
  */
 const https = require('https');
 const http  = require('http');
+const crypto = require('crypto');
 const JobCache = require('../models/JobCache');
 
 const CACHE_TTL_MS = 45 * 60 * 1000; // 45 minutes
@@ -80,8 +81,18 @@ function httpPost(url, body, headers = {}, timeoutMs = 15000) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Some sources send HTML that is itself entity-escaped ("&lt;p&gt;"), so decode first,
+// keep paragraph breaks, then drop the tags. &amp; is decoded last to avoid double-decoding.
 function stripHtml(html = '') {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000);
+  return html
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'")
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+    .replace(/<\/(p|li|h\d|div)>|<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s*\n\s*/g, '\n')
+    .trim()
+    .slice(0, 2000);
 }
 
 // ── Bulk upsert ──────────────────────────────────────────────────────────────
@@ -226,8 +237,9 @@ function normalizeJSearch(job) {
 }
 
 function normalizeJooble(job) {
-  const id = Buffer.from((job.link || job.title + job.company || String(Math.random())))
-    .toString('base64').slice(0, 24);
+  // Hash the whole link: the old base64 prefix was identical for every jooble.org URL,
+  // so all Jooble jobs overwrote each other as a single record.
+  const id = crypto.createHash('sha1').update(job.link || `${job.title}|${job.company}|${job.location}`).digest('hex');
   return {
     external_id: `jooble_${id}`,
     source: 'jooble',
@@ -356,7 +368,7 @@ async function fetchJSearch() {
   });
 
   const jobs = all.map(normalizeJSearch);
-  await upsertJobs(jobs);
+  await upsertJobs(jobs, 'jsearch');
   console.log(`✅ JSearch: ${jobs.length} jobs cached`);
 }
 
@@ -391,7 +403,7 @@ async function fetchJooble() {
   const seen = new Set();
   all = all.filter((j) => { if (seen.has(j.link)) return false; seen.add(j.link); return true; });
   const jobs = all.map(normalizeJooble);
-  await upsertJobs(jobs);
+  await upsertJobs(jobs, 'jooble');
   console.log(`✅ Jooble: ${jobs.length} jobs`);
 }
 

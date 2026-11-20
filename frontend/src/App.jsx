@@ -7,6 +7,7 @@ import { authAPI } from './services/api';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import NotificationToast from './components/NotificationToast';
+import { Logo, Spinner } from './components/ui';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -27,7 +28,10 @@ function AuthLoader({ children }) {
           const res = await authAPI.getMe();
           dispatch(setUser(res.data.user));
         } catch {
-          // If getMe fails, it might be a new user who just completed a redirect login.
+          // Email sign-ups create their profile from the Register page (with course, resume, etc.).
+          // Syncing here too would race it and could fail with "account already exists".
+          if (firebaseUser.providerData?.[0]?.providerId === 'password') return dispatch(logout());
+          // A Google user returning from a redirect sign-in: create the profile.
           try {
             const idToken = await firebaseUser.getIdToken();
             const fd = new FormData();
@@ -50,10 +54,10 @@ function AuthLoader({ children }) {
 
   if (loading) {
     return (
-      <div className="page-bg flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-12 h-12 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400 text-sm">Loading HireEasy...</p>
+      <div className="page-bg flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4 animate-fade-in">
+          <Logo compact />
+          <Spinner className="text-gray-400" />
         </div>
       </div>
     );

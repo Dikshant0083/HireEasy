@@ -1,53 +1,94 @@
 # HireEasy 🚀
 
-**Discover real-time jobs, internships, and scholarships — matched to your resume.**
+**HireEasy is an intelligent, modern job discovery and career management platform.** 
+It aggregates real-time jobs, internships, and scholarships from multiple global sources, parses your resume, and ranks every listing by how many of the skills it asks for are on your resume. 
 
-## Features
+## ✨ Key Features
 
-- 🌐 **Real-time jobs** from Remotive + Arbeitnow APIs (auto-refreshed hourly)
-- 🏅 **20 curated scholarships** (Fulbright, Gates Cambridge, Rhodes, DAAD, etc.)
-- 📄 **CSV upload** — import your own job listings
-- 📑 **Resume upload** — PDF/DOCX parsed, skills auto-extracted
-- 🧠 **AI Match Score** — TF-IDF scoring against your skills
-- 🚀 **Direct Apply** — one-click opens the original job URL
-- ⭐ **Save & track** your applications
-
----
-
-## Project Structure
-
-```
-HireEasy/
-├── backend/       → Express API (port 5000)
-├── frontend/      → React app (port 3000)
-└── sample_jobs.csv → CSV template for uploading jobs
-```
+- 🌐 **Real-Time Job Aggregation**: Fetches live jobs from Remotive, Arbeitnow, JSearch (Indeed/LinkedIn), and Jooble.
+- 📄 **Smart Resume Parsing**: Upload your PDF/DOCX resume to extract your skills (dictionary match with word-boundary rules, so Java is not JavaScript and C is not C++).
+- 🧠 **Match Score**: The share of a listing's skills that you have, with the matched and missing skills shown on each job. Listings that name no skills get no score instead of a made-up one.
+- 🔔 **Email Alerts**: Opt-in to daily automated email alerts that deliver the top 5 matching jobs straight to your inbox.
+- 📝 **Resume Builder**: A built-in tool to craft, preview, and export ATS-friendly PDF resumes using custom templates.
+- 📅 **Interview & Event Tracker**: Keep track of upcoming interviews, OA links, and application deadlines.
+- 📱 **Mobile-First & Fully Responsive**: A clean dark UI built with Tailwind CSS, Lucide icons, and a native app-like bottom navigation for mobile.
+- 🔐 **Authentication**: Seamless email/password and Google Sign-In powered by Firebase Auth (ID tokens verified on the API).
+- 📂 **CSV Bulk Upload**: Recruiters or users can instantly import large batches of job listings via CSV.
 
 ---
 
-## Quick Start
+## 🛠️ Technology Stack
 
-### 1. Start Backend
+**Frontend**
+- React 18 & React Router DOM
+- Redux Toolkit (State Management)
+- Tailwind CSS (design tokens in `tailwind.config.js` and `src/index.css`)
+- Lucide React (Modern SVGs)
+- Firebase Auth (Google Sign-In)
+- Axios
+
+**Backend**
+- Node.js & Express.js
+- MongoDB & Mongoose (Database)
+- Node-Cron & Nodemailer (Background jobs & Email alerts)
+- pdf-parse & mammoth (resume text), skill matcher in `services/resumeParser.js`, scorer in `services/scorer.js` (`npm test`)
+- JWT & bcryptjs (Authentication)
+- External APIs: JSearch, Jooble, Remotive, Arbeitnow
+
+---
+
+## 🚀 Quick Start
+
+### 1. Environment Variables
+
+Create a `.env` file in the `backend` directory:
+```env
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+NODE_ENV=development
+
+# Email Alerts
+EMAIL_SERVICE=gmail
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASSWORD=your_app_password
+
+# External Job APIs
+JSEARCH_API_KEY=your_rapidapi_jsearch_key
+JOOBLE_API_KEY=your_jooble_api_key
+
+# Frontend URL (For CORS & Email Links)
+FRONTEND_URL=http://localhost:3000
+```
+
+Create a `.env` file in the `frontend` directory:
+```env
+REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
+REACT_APP_FIREBASE_PROJECT_ID=your_firebase_project_id
+```
+
+### 2. Start Backend
 ```bash
 cd backend
-npm install      # already done
+npm install
 npm start
-# → http://localhost:5000/api/health
+# Server runs on http://localhost:5000
 ```
 
-### 2. Start Frontend (new terminal)
+### 3. Start Frontend
 ```bash
 cd frontend
-npm install      # already done
+npm install
 npm start
-# → http://localhost:3000
+# Client runs on http://localhost:3000
 ```
 
 ---
 
-## CSV Upload Format
+## 📂 CSV Upload Format
 
-Use the included `sample_jobs.csv` as a template. Required columns:
+You can upload custom jobs directly via the Dashboard. Required CSV columns:
 
 | Column | Required | Example |
 |--------|----------|---------|
@@ -62,34 +103,28 @@ Use the included `sample_jobs.csv` as a template. Required columns:
 | tags | | Python,React,ML (comma-separated) |
 | is_remote | | true / false |
 
-Upload via Dashboard → "Upload Job CSV"
-
 ---
 
-## API Endpoints
+## 🔌 Core API Routes
 
-```
-POST /api/auth/register    → Register + resume upload
-POST /api/auth/login       → Login
+### Auth & User
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `POST /api/auth/google` - Google Sign-In
+- `GET /api/user/profile` - Get user profile
+- `POST /api/user/resume` - Upload & parse resume PDF
 
-GET  /api/user/profile     → Get profile (auth)
-PATCH /api/user/profile    → Update profile (auth)
-POST /api/user/resume      → Re-upload resume (auth)
+### Jobs & Applications
+- `GET /api/jobs` - Fetch aggregated jobs (with match scores)
+- `POST /api/jobs/:id/apply` - Record a job application
+- `POST /api/jobs/:id/save` - Bookmark a job
+- `POST /api/jobs/upload-csv` - Import bulk jobs
 
-GET  /api/jobs             → All jobs (filters: type, search, remote, source)
-GET  /api/jobs/:id         → Single job + match score
-POST /api/jobs/:id/apply   → Record apply (auth)
-POST /api/jobs/:id/save    → Toggle save (auth)
-POST /api/jobs/upload-csv  → Import CSV (auth)
-
-GET  /api/applications     → User's applications (auth)
-```
+### Alerts & Resume Builder
+- `PATCH /api/alerts/preferences` - Toggle email alerts
+- `POST /api/alerts/test-email` - Trigger test match email
+- `GET /api/resume-builder` - Fetch saved resume drafts
+- `PUT /api/resume-builder` - Save resume draft
 
 ---
-
-## Tech Stack
-
-- **Backend**: Node.js, Express, Mongoose, JWT, Multer, pdf-parse, natural (TF-IDF)
-- **Frontend**: React 18, Redux Toolkit, React Router, Axios, Tailwind CSS
-- **DB**: MongoDB Atlas
-- **Job APIs**: Remotive (free), Arbeitnow (free) — no API keys needed
+*Built with ❤️ for job seekers.*

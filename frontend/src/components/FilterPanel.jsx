@@ -1,105 +1,62 @@
 import React from 'react';
+import { SOURCE_NAMES } from './ui';
 
-export default function FilterPanel({ filters, onChange, total }) {
-  const handleChange = (key, value) => {
-    onChange({ ...filters, [key]: value });
-  };
+export const EMPTY_FILTERS = { type: '', search: '', remote: false, source: '' };
+
+const TYPES = [
+  { value: '', label: 'All opportunities' },
+  { value: 'job', label: 'Jobs' },
+  { value: 'internship', label: 'Internships' },
+  { value: 'scholarship', label: 'Scholarships' },
+];
+const SOURCES = [{ value: '', label: 'All sources' }, ...Object.entries(SOURCE_NAMES).map(([value, label]) => ({ value, label }))];
+
+function Group({ title, name, options, value, onChange }) {
+  return (
+    <fieldset className="border-t border-[var(--line)] px-4 py-4 first:border-t-0">
+      <legend className="sr-only">{title}</legend>
+      <p className="mb-2.5 text-[14px] font-semibold text-gray-900" aria-hidden="true">{title}</p>
+      <div className="space-y-2">
+        {options.map((o) => (
+          <label key={o.value || 'all'} className="flex cursor-pointer items-center gap-2.5 text-[13px] text-gray-700 hover:text-gray-900">
+            <input
+              type="radio"
+              name={name}
+              checked={value === o.value}
+              onChange={() => onChange(o.value)}
+              className="h-4 w-4 accent-[#2557d6]"
+            />
+            {o.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+export default function FilterPanel({ filters, onChange }) {
+  const set = (key, value) => onChange({ ...filters, [key]: value });
+  const dirty = filters.type || filters.remote || filters.source;
 
   return (
-    <div className="glass-card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-semibold text-sm">🔍 Filters</h3>
-        {total !== undefined && (
-          <span className="text-xs text-purple-400 font-medium">{total.toLocaleString()} results</span>
+    <div className="glass-card overflow-hidden">
+      <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+        <h2 className="text-[15px] font-semibold text-gray-900">All filters</h2>
+        {dirty && (
+          <button type="button" onClick={() => onChange({ ...EMPTY_FILTERS, search: filters.search })} className="text-[13px] font-semibold text-accent-700 hover:underline">
+            Clear
+          </button>
         )}
       </div>
 
-      <div className="space-y-4">
-        {/* Search */}
-        <div>
-          <label className="block text-xs text-gray-400 mb-1.5 font-medium">Search</label>
-          <input
-            type="text"
-            className="input-field"
-            placeholder="Title, company, skills..."
-            value={filters.search || ''}
-            onChange={(e) => handleChange('search', e.target.value)}
-          />
-        </div>
-
-        {/* Type */}
-        <div>
-          <label className="block text-xs text-gray-400 mb-1.5 font-medium">Type</label>
-          <div className="grid grid-cols-2 gap-1.5">
-            {[
-              { value: '', label: '🌐 All' },
-              { value: 'job', label: '💼 Jobs' },
-              { value: 'internship', label: '🎓 Internships' },
-              { value: 'scholarship', label: '🏅 Scholarships' },
-            ].map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => handleChange('type', opt.value)}
-                className={`py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-                  filters.type === opt.value
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Source */}
-        <div>
-          <label className="block text-xs text-gray-400 mb-1.5 font-medium">Source</label>
-          <div className="grid grid-cols-2 gap-1.5">
-            {[
-              { value: '', label: '🌐 All' },
-              { value: 'remotive', label: '📡 Remotive' },
-              { value: 'arbeitnow', label: '🇩🇪 Arbeitnow' },
-              { value: 'csv', label: '📄 My CSV' },
-            ].map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => handleChange('source', opt.value)}
-                className={`py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-                  filters.source === opt.value
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Remote */}
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-gray-400 font-medium">Remote Only</label>
-          <button
-            onClick={() => handleChange('remote', !filters.remote)}
-            className={`relative w-10 h-5 rounded-full transition-all duration-200 ${
-              filters.remote ? 'bg-purple-600' : 'bg-white/10'
-            }`}
-          >
-            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${
-              filters.remote ? 'translate-x-5' : 'translate-x-0.5'
-            }`} />
-          </button>
-        </div>
-
-        {/* Clear */}
-        <button
-          onClick={() => onChange({ type: '', search: '', remote: false, source: '' })}
-          className="w-full py-2 rounded-lg text-xs text-gray-500 hover:text-gray-300 transition-colors bg-white/3 hover:bg-white/8"
-        >
-          Clear All Filters
-        </button>
+      <div className="border-b border-[var(--line)] px-4 py-4">
+        <label className="flex cursor-pointer items-center gap-2.5 text-[13px] font-medium text-gray-800">
+          <input type="checkbox" checked={!!filters.remote} onChange={() => set('remote', !filters.remote)} className="h-4 w-4 rounded accent-[#2557d6]" />
+          Work from home / remote only
+        </label>
       </div>
+      <Group title="Opportunity type" name="type" options={TYPES} value={filters.type} onChange={(v) => set('type', v)} />
+      <Group title="Source" name="source" options={SOURCES} value={filters.source} onChange={(v) => set('source', v)} />
     </div>
   );
 }

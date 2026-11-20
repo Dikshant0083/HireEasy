@@ -38,7 +38,6 @@ export const authAPI = {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
   getMe: () => api.get('/auth/me'),
-  testToken: () => api.get('/auth/test-token'),
 };
 
 // User

@@ -11,9 +11,9 @@ export default function ModernTemplate({ resume }) {
   return (
     <div style={{ fontFamily: "'Segoe UI', Arial, sans-serif", width: '210mm', minHeight: '297mm', display: 'flex', background: '#fff' }}>
       {/* Sidebar */}
-      <div style={{ width: '72mm', background: 'linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%)', padding: '32px 20px', color: '#fff', flexShrink: 0 }}>
+      <div style={{ width: '72mm', background: '#1f2937', padding: '32px 20px', color: '#fff', flexShrink: 0 }}>
         {/* Avatar */}
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, marginBottom: 16, border: '3px solid rgba(255,255,255,0.4)' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, marginBottom: 16, border: '2px solid rgba(255,255,255,0.25)' }}>
           {(personal.name || 'U').charAt(0).toUpperCase()}
         </div>
         <div style={{ fontWeight: 700, fontSize: 18, lineHeight: 1.2, marginBottom: 4 }}>{personal.name || 'Your Name'}</div>
@@ -22,11 +22,11 @@ export default function ModernTemplate({ resume }) {
         {/* Contact */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.7, marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: 4 }}>Contact</div>
-          {personal.email && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>✉ {personal.email}</div>}
-          {personal.phone && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>📱 {personal.phone}</div>}
-          {personal.location && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>📍 {personal.location}</div>}
-          {personal.linkedin && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>🔗 {personal.linkedin}</div>}
-          {personal.github && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>💻 {personal.github}</div>}
+          {personal.email && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>{personal.email}</div>}
+          {personal.phone && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>{personal.phone}</div>}
+          {personal.location && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>{personal.location}</div>}
+          {personal.linkedin && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>{personal.linkedin}</div>}
+          {personal.github && <div style={{ fontSize: 10, marginBottom: 4, opacity: 0.9 }}>{personal.github}</div>}
         </div>
 
         {/* Skills */}

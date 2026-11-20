@@ -14,11 +14,12 @@ router.get('/', authenticate, async (req, res, next) => {
         personal: {
           name:  req.user.name || '',
           email: req.user.email || '',
-          phone: req.user.contact || '',
+          phone: req.user.phone || req.user.contact || '',
         },
-        education: req.user.degree ? [{
-          degree: req.user.degree,
-          field:  req.user.course || '',
+        // Profile stores course = "B.Tech" and degree = branch ("CSE").
+        education: (req.user.course || req.user.degree) ? [{
+          degree: req.user.course || '',
+          field:  req.user.degree || '',
           cgpa:   req.user.cgpa ? String(req.user.cgpa) : '',
         }] : [],
         skills: { technical: req.user.skills || [], soft: [], languages: [], tools: [] },
@@ -32,9 +33,10 @@ router.get('/', authenticate, async (req, res, next) => {
 // PUT /api/resume-builder — save/update resume data
 router.put('/', authenticate, async (req, res, next) => {
   try {
+    const { _id, user_id, createdAt, updatedAt, __v, ...data } = req.body || {};
     const resume = await ResumeData.findOneAndUpdate(
       { user_id: req.user._id },
-      { $set: { user_id: req.user._id, ...req.body } },
+      { $set: { ...data, user_id: req.user._id } },
       { new: true, upsert: true, runValidators: true }
     );
     res.json({ success: true, resume });
@@ -48,7 +50,7 @@ router.patch('/template', authenticate, async (req, res, next) => {
     await ResumeData.findOneAndUpdate(
       { user_id: req.user._id },
       { $set: { template } },
-      { upsert: true }
+      { upsert: true, runValidators: true }
     );
     res.json({ success: true, template });
   } catch (err) { next(err); }

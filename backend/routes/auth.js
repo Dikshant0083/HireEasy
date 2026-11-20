@@ -27,7 +27,7 @@ const upload = multer({
     const allowed = ['.pdf', '.docx', '.doc', '.txt'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error('Only PDF, DOCX, DOC, TXT files are allowed'));
+    else cb(Object.assign(new Error('Upload your resume as a PDF, DOCX or TXT file'), { statusCode: 400 }));
   },
 });
 
@@ -43,6 +43,9 @@ router.post('/sync', upload.single('resume'), async (req, res, next) => {
   try {
     const { idToken, name, phone, course, degree, cgpa, provider } = req.body;
     if (!idToken) return res.status(400).json({ success: false, message: 'idToken required' });
+    if (cgpa !== undefined && cgpa !== '' && !(Number(cgpa) >= 0 && Number(cgpa) <= 10)) {
+      return res.status(400).json({ success: false, message: 'CGPA must be a number between 0 and 10.' });
+    }
 
     // 1. Verify Firebase token
     let firebaseUser;
@@ -53,6 +56,7 @@ router.post('/sync', upload.single('resume'), async (req, res, next) => {
     }
 
     const { localId: firebase_uid, email, displayName } = firebaseUser;
+    req.firebaseUid = firebase_uid;
     const resolvedName = name || displayName || email?.split('@')[0] || 'User';
 
     // 2. Parse resume if uploaded
@@ -155,8 +159,11 @@ router.post('/sync', upload.single('resume'), async (req, res, next) => {
       extractedSkills: req.file ? skills : undefined,
     });
   } catch (err) {
-    // Handle duplicate key as a fallback
+    // Two sync calls for the same new account can race (e.g. login page and app loader).
+    // The loser hits the unique index; return the profile the winner just created.
     if (err.code === 11000) {
+      const existing = req.firebaseUid && await User.findOne({ firebase_uid: req.firebaseUid });
+      if (existing) return res.json({ success: true, isNewUser: false, user: existing.toPublic() });
       return res.status(409).json({
         success: false,
         message: 'An account with this email already exists. Please sign in.',
@@ -203,34 +210,6 @@ router.get('/me', async (req, res, next) => {
     res.json({ success: true, user: user.toPublic() });
   } catch (err) {
     next(err);
-  }
-});
-
-/**
- * GET /api/auth/test-token
- * Debug endpoint — verifies token and returns user info
- */
-router.get('/test-token', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return res.json({ ok: false, step: 'no_header', message: 'No Bearer token in Authorization header' });
-    }
-    const idToken = authHeader.split(' ')[1];
-    let firebaseUser;
-    try {
-      firebaseUser = await verifyFirebaseToken(idToken);
-    } catch (e) {
-      return res.json({ ok: false, step: 'firebase_verify', message: e.message });
-    }
-    const user = await User.findOne({ firebase_uid: firebaseUser.localId })
-      || await User.findOne({ email: firebaseUser.email });
-    if (!user) {
-      return res.json({ ok: false, step: 'db_lookup', message: 'No MongoDB user found', firebase_uid: firebaseUser.localId, email: firebaseUser.email });
-    }
-    res.json({ ok: true, step: 'success', firebase_uid: firebaseUser.localId, email: user.email, name: user.name });
-  } catch (e) {
-    res.json({ ok: false, step: 'unexpected', message: e.message });
   }
 });
 

@@ -3,6 +3,8 @@ const router = express.Router();
 const Interview = require('../models/Interview');
 const authenticate = require('../middleware/authenticate');
 
+const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
+
 // GET /api/interviews — list user's interviews
 router.get('/', authenticate, async (req, res, next) => {
   try {
@@ -31,9 +33,11 @@ router.post('/', authenticate, async (req, res, next) => {
 // PATCH /api/interviews/:id — update interview
 router.patch('/:id', authenticate, async (req, res, next) => {
   try {
+    const updates = pick(req.body, ['company', 'role', 'scheduled_at', 'format', 'link', 'notes', 'status']);
+    if (updates.scheduled_at) updates.reminder_sent = false; // rescheduled: remind again for the new time
     const interview = await Interview.findOneAndUpdate(
       { _id: req.params.id, user_id: req.user._id },
-      { $set: req.body },
+      { $set: updates },
       { new: true, runValidators: true }
     );
     if (!interview) return res.status(404).json({ success: false, message: 'Interview not found' });

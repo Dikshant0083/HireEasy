@@ -4,13 +4,14 @@ const User = require('../models/User');
 const authenticate = require('../middleware/authenticate');
 const { sendJobAlertEmail, sendWhatsAppAlert } = require('../services/alertService');
 const JobCache = require('../models/JobCache');
+const { scoreJob } = require('../services/scorer');
 
-function scoreJob(userSkills, job) {
-  if (!userSkills?.length) return 0;
-  const text = [job.title, ...(job.tags || []), job.description || ''].join(' ').toLowerCase();
-  const matches = userSkills.filter((s) => text.includes(s.toLowerCase()));
-  return Math.round((matches.length / userSkills.length) * 100);
-}
+const topMatches = (user, jobs, n) => jobs
+  .map((j) => ({ ...j, matchScore: scoreJob(user.skills || [], j) }))
+  .filter((j) => j.matchScore !== null)
+  .sort((a, b) => b.matchScore - a.matchScore)
+  .slice(0, n);
+
 
 // GET /api/alerts/preferences — get alert settings
 router.get('/preferences', authenticate, async (req, res, next) => {
@@ -40,26 +41,15 @@ router.post('/test-email', authenticate, async (req, res, next) => {
   try {
     const jobs = await JobCache.find({ expires_at: { $gt: new Date() } })
       .sort({ posted_at: -1 }).limit(100).lean();
-    const scored = jobs
-      .map((j) => ({ ...j, matchScore: scoreJob(req.user.skills || [], j) }))
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 5);
+    const scored = topMatches(req.user, jobs, 5);
+    if (!scored.length) {
+      return res.status(400).json({ success: false, message: 'No matching jobs yet. Upload a resume so we know your skills.' });
+    }
     await sendJobAlertEmail(req.user, scored);
     res.json({ success: true, message: `Test email sent to ${req.user.email}` });
-  } catch (err) { 
-    res.status(500).json({ success: false, message: `Mail Error: ${err.message}` });
-  }
-});
-
-// GET /api/alerts/debug-email
-router.get('/debug-email', async (req, res) => {
-  try {
-    const dummyUser = { email: 'khileridikshant@gmail.com', name: 'Dikshant', skills: ['React'] };
-    const dummyJobs = [{ title: 'Frontend Developer', company: 'Google', location: 'Remote', apply_url: 'http://example.com' }];
-    await sendJobAlertEmail(dummyUser, dummyJobs);
-    res.json({ success: true, message: "Debug email sent" });
   } catch (err) {
-    res.status(500).json({ success: false, message: `Debug Mail Error: ${err.message}`, stack: err.stack });
+    console.error('Test email failed:', err.message);
+    res.status(502).json({ success: false, message: 'Could not send the email. Check the mail settings on the server.' });
   }
 });
 
@@ -72,17 +62,14 @@ router.post('/test-whatsapp', authenticate, async (req, res, next) => {
         message: 'CALLMEBOT_API_KEY not set. Activate at callmebot.com and add the key to .env',
       });
     }
-    if (!req.user.contact) {
+    if (!(req.user.phone || req.user.contact)) {
       return res.status(400).json({ success: false, message: 'No phone number in your profile. Please update your contact number first.' });
     }
     const jobs = await JobCache.find({ expires_at: { $gt: new Date() } })
       .sort({ posted_at: -1 }).limit(50).lean();
-    const scored = jobs
-      .map((j) => ({ ...j, matchScore: scoreJob(req.user.skills || [], j) }))
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 3);
+    const scored = topMatches(req.user, jobs, 3);
     await sendWhatsAppAlert(req.user, scored);
-    res.json({ success: true, message: `WhatsApp sent to ${req.user.contact}` });
+    res.json({ success: true, message: `WhatsApp sent to ${req.user.phone || req.user.contact}` });
   } catch (err) { next(err); }
 });
 

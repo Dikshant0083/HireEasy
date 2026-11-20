@@ -1,21 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api from '../services/api';
 import ResumePreview from '../components/resume/ResumePreview';
-import { User, GraduationCap, Briefcase, Rocket, Zap, Award, Edit3, Eye, Download, Save, CheckCircle } from 'lucide-react';
+import { Pencil, Eye, Download, Check, Plus, Trash2 } from 'lucide-react';
+import { Segmented, Spinner } from '../components/ui';
 
 const STEPS = [
-  { id: 'personal',       label: 'Personal',       icon: <User size={16} /> },
-  { id: 'education',      label: 'Education',       icon: <GraduationCap size={16} /> },
-  { id: 'experience',     label: 'Experience',      icon: <Briefcase size={16} /> },
-  { id: 'projects',       label: 'Projects',        icon: <Rocket size={16} /> },
-  { id: 'skills',         label: 'Skills',          icon: <Zap size={16} /> },
-  { id: 'certifications', label: 'Certifications',  icon: <Award size={16} /> },
+  { id: 'personal', label: 'Personal' },
+  { id: 'education', label: 'Education' },
+  { id: 'experience', label: 'Experience' },
+  { id: 'projects', label: 'Projects' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'certifications', label: 'Certifications' },
 ];
 
 const TEMPLATES = [
-  { id: 'modern',  label: 'Modern',  desc: 'Purple gradient, clean sidebar' },
-  { id: 'classic', label: 'Classic', desc: 'Professional, ATS-friendly' },
-  { id: 'minimal', label: 'Minimal', desc: 'Clean & distraction-free' },
+  { value: 'modern', label: 'Modern' },
+  { value: 'classic', label: 'Classic' },
+  { value: 'minimal', label: 'Minimal' },
 ];
 
 const DEFAULT_RESUME = {
@@ -27,6 +28,25 @@ const DEFAULT_RESUME = {
   skills: { technical: [], soft: [], languages: [], tools: [] },
   certifications: [],
 };
+
+const parseList = (text) => text.split(',').map((s) => s.trim()).filter(Boolean);
+
+function ListInput({ value, onChange, ...props }) {
+  const [text, setText] = useState((value || []).join(', '));
+  return <input {...props} value={text} onChange={(e) => { setText(e.target.value); onChange(parseList(e.target.value)); }} />;
+}
+
+function Entry({ title, onRemove, children }) {
+  return (
+    <div className="rounded-lg border border-[var(--line)] bg-gray-50 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-xs font-medium text-gray-600">{title}</span>
+        <button type="button" onClick={onRemove} className="btn-icon h-7 w-7 hover:text-red-700" aria-label={`Remove ${title}`}><Trash2 size={14} /></button>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export default function ResumeBuilder() {
   const [resume, setResume] = useState(DEFAULT_RESUME);
@@ -74,8 +94,8 @@ export default function ResumeBuilder() {
   const updatePersonal = (field, value) =>
     setResume({ ...resume, personal: { ...resume.personal, [field]: value } });
 
-  const updateSkills = (type, value) =>
-    setResume({ ...resume, skills: { ...resume.skills, [type]: value.split(',').map(s => s.trim()).filter(Boolean) } });
+  const updateSkills = (type, list) =>
+    setResume({ ...resume, skills: { ...resume.skills, [type]: list } });
 
   const addListItem = (section, item) =>
     setResume({ ...resume, [section]: [...(resume[section] || []), item] });
@@ -89,69 +109,52 @@ export default function ResumeBuilder() {
     setResume({ ...resume, [section]: arr });
   };
 
-  if (loading) return <div className="page-bg pt-20 min-h-screen flex items-center justify-center"><div className="text-gray-400 animate-pulse text-lg">Loading your resume...</div></div>;
+  if (loading) return <div className="page flex items-center justify-center"><Spinner className="text-gray-400" /></div>;
 
   return (
-    <div className="page-bg pt-20 pb-10 px-4 min-h-screen">
+    <div className="page">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">📄 Resume Builder</h1>
-            <p className="text-gray-400 text-sm mt-1">Build your resume in minutes — export as PDF</p>
+            <h1 className="text-[22px] font-semibold leading-tight">Resume</h1>
+            <p className="mt-1 text-[13px] text-gray-600">Edit on the left, check the preview on the right, then export to PDF.</p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => setShowPreview(!showPreview)}
-              className={`btn-secondary flex items-center gap-1.5 text-sm ${showPreview ? 'ring-1 ring-purple-500' : ''}`}>
-              {showPreview ? <><Edit3 size={16} /> Edit</> : <><Eye size={16} /> Preview</>}
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented label="Template" value={resume.template} onChange={(t) => setResume({ ...resume, template: t })} options={TEMPLATES} />
+            <button onClick={() => setShowPreview(!showPreview)} className="btn-secondary btn-sm lg:hidden">
+              {showPreview ? <><Pencil size={14} /> Edit</> : <><Eye size={14} /> Preview</>}
             </button>
-            <button onClick={handlePrint} className="btn-secondary flex items-center gap-1.5 text-sm"><Download size={16} /> Export PDF</button>
-            <button onClick={save} disabled={saving} className="btn-primary flex items-center justify-center gap-1.5 text-sm disabled:opacity-50">
-              {saving ? 'Saving...' : saved ? <><CheckCircle size={16} /> Saved!</> : <><Save size={16} /> Save</>}
+            <button onClick={handlePrint} className="btn-secondary btn-sm"><Download size={14} /> Export PDF</button>
+            <button onClick={save} disabled={saving} className="btn-primary btn-sm min-w-[72px]">
+              {saving ? <Spinner /> : saved ? <><Check size={14} /> Saved</> : 'Save'}
             </button>
           </div>
-        </div>
-
-        {/* Template selector */}
-        <div className="glass-card p-4 mb-6 flex flex-wrap gap-3 items-center">
-          <span className="text-gray-400 text-sm font-medium">Template:</span>
-          {TEMPLATES.map((t) => (
-            <button key={t.id} onClick={() => setResume({ ...resume, template: t.id })}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
-                resume.template === t.id
-                  ? 'bg-purple-600 border-purple-600 text-white'
-                  : 'border-white/10 text-gray-400 hover:border-purple-500/50 hover:text-white'
-              }`}>
-              {t.label}
-              <span className="text-xs ml-2 opacity-60">{t.desc}</span>
-            </button>
-          ))}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left: Steps + Form */}
           <div className={`${showPreview ? 'hidden lg:block lg:w-1/2' : 'flex-1'}`}>
             {/* Step tabs */}
-            <div className="flex gap-1 flex-wrap glass-card p-1 mb-4">
+            <div className="mb-4 flex gap-1 overflow-x-auto border-b border-[var(--line)]">
               {STEPS.map((s) => (
                 <button key={s.id} onClick={() => setStep(s.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                    step === s.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+                  className={`-mb-px whitespace-nowrap border-b-2 px-3 pb-2.5 pt-1 text-[13px] font-medium transition-colors ${
+                    step === s.id ? 'border-accent-600 text-accent-700' : 'border-transparent text-gray-500 hover:text-gray-800'
                   }`}>
-                  {s.icon} {s.label}
+                  {s.label}
                 </button>
               ))}
             </div>
 
             {/* Form sections */}
-            <div className="glass-card p-5 space-y-4">
+            <div className="glass-card space-y-4 p-5">
               {step === 'personal' && (
                 <>
-                  <h3 className="flex items-center gap-2 text-white font-semibold mb-3">
-                    <User size={18} className="text-blue-400" /> Personal Information
+                  <h3 className="section-title mb-3">Personal Information
                   </h3>
                   {[
-                    { key: 'name', label: 'Full Name', placeholder: 'Dikshant Choudhary' },
+                    { key: 'name', label: 'Full name', placeholder: 'Your full name' },
                     { key: 'email', label: 'Email', placeholder: 'you@email.com' },
                     { key: 'phone', label: 'Phone', placeholder: '+91 9876543210' },
                     { key: 'location', label: 'Location', placeholder: 'Bengaluru, India' },
@@ -177,18 +180,13 @@ export default function ResumeBuilder() {
               {step === 'education' && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="flex items-center gap-2 text-white font-semibold">
-                      <GraduationCap size={18} className="text-purple-400" /> Education
+                    <h3 className="section-title">Education
                     </h3>
-                    <button className="btn-secondary text-xs" onClick={() => addListItem('education', { institution: '', degree: '', field: '', start_year: '', end_year: '', cgpa: '' })}>+ Add</button>
+                    <button type="button" className="btn-secondary btn-sm" onClick={() => addListItem('education', { institution: '', degree: '', field: '', start_year: '', end_year: '', cgpa: '' })}><Plus size={14} /> Add</button>
                   </div>
-                  {(resume.education || []).length === 0 && <p className="text-gray-500 text-sm text-center py-4">No education entries yet</p>}
+                  {(resume.education || []).length === 0 && <p className="rounded-lg border border-dashed border-[var(--line-strong)] py-8 text-center text-[13px] text-gray-500">No education entries yet</p>}
                   {(resume.education || []).map((edu, i) => (
-                    <div key={i} className="bg-white/5 rounded-xl p-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-white text-sm font-medium">Education #{i + 1}</span>
-                        <button onClick={() => removeListItem('education', i)} className="text-red-400 text-xs hover:text-red-300">Remove</button>
-                      </div>
+                    <Entry key={i} title={`Education ${i + 1}`} onRemove={() => removeListItem('education', i)}>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="col-span-2">
                           <label className="form-label">Institution</label>
@@ -215,7 +213,7 @@ export default function ResumeBuilder() {
                           <input className="input-field" placeholder="8.5 / 85%" value={edu.cgpa || ''} onChange={(e) => updateListItem('education', i, 'cgpa', e.target.value)} />
                         </div>
                       </div>
-                    </div>
+                    </Entry>
                   ))}
                 </>
               )}
@@ -223,18 +221,13 @@ export default function ResumeBuilder() {
               {step === 'experience' && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="flex items-center gap-2 text-white font-semibold">
-                      <Briefcase size={18} className="text-yellow-400" /> Work Experience
+                    <h3 className="section-title">Work Experience
                     </h3>
-                    <button className="btn-secondary text-xs" onClick={() => addListItem('experience', { company: '', role: '', location: '', start_date: '', end_date: '', current: false, description: '' })}>+ Add</button>
+                    <button type="button" className="btn-secondary btn-sm" onClick={() => addListItem('experience', { company: '', role: '', location: '', start_date: '', end_date: '', current: false, description: '' })}><Plus size={14} /> Add</button>
                   </div>
-                  {(resume.experience || []).length === 0 && <p className="text-gray-500 text-sm text-center py-4">No experience entries yet</p>}
+                  {(resume.experience || []).length === 0 && <p className="rounded-lg border border-dashed border-[var(--line-strong)] py-8 text-center text-[13px] text-gray-500">No experience entries yet</p>}
                   {(resume.experience || []).map((exp, i) => (
-                    <div key={i} className="bg-white/5 rounded-xl p-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-white text-sm font-medium">Experience #{i + 1}</span>
-                        <button onClick={() => removeListItem('experience', i)} className="text-red-400 text-xs hover:text-red-300">Remove</button>
-                      </div>
+                    <Entry key={i} title={`Experience ${i + 1}`} onRemove={() => removeListItem('experience', i)}>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="form-label">Company</label>
@@ -253,15 +246,15 @@ export default function ResumeBuilder() {
                           <input className="input-field" placeholder="Present" disabled={exp.current} value={exp.current ? 'Present' : (exp.end_date || '')} onChange={(e) => updateListItem('experience', i, 'end_date', e.target.value)} />
                         </div>
                         <div className="col-span-2 flex items-center gap-2">
-                          <input type="checkbox" id={`curr-${i}`} checked={exp.current || false} onChange={(e) => updateListItem('experience', i, 'current', e.target.checked)} className="w-4 h-4 accent-purple-500" />
-                          <label htmlFor={`curr-${i}`} className="text-gray-300 text-sm">Currently working here</label>
+                          <input type="checkbox" id={`curr-${i}`} checked={exp.current || false} onChange={(e) => updateListItem('experience', i, 'current', e.target.checked)} className="h-4 w-4 accent-[#4a78f2]" />
+                          <label htmlFor={`curr-${i}`} className="text-gray-700 text-sm">Currently working here</label>
                         </div>
                         <div className="col-span-2">
                           <label className="form-label">Description (use bullet points)</label>
                           <textarea className="input-field resize-none" rows={4} placeholder="• Built microservices handling 1M+ requests/day&#10;• Reduced API latency by 40%..." value={exp.description || ''} onChange={(e) => updateListItem('experience', i, 'description', e.target.value)} />
                         </div>
                       </div>
-                    </div>
+                    </Entry>
                   ))}
                 </>
               )}
@@ -269,26 +262,21 @@ export default function ResumeBuilder() {
               {step === 'projects' && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="flex items-center gap-2 text-white font-semibold">
-                      <Rocket size={18} className="text-red-400" /> Projects
+                    <h3 className="section-title">Projects
                     </h3>
-                    <button className="btn-secondary text-xs" onClick={() => addListItem('projects', { name: '', description: '', tech_stack: [], link: '' })}>+ Add</button>
+                    <button type="button" className="btn-secondary btn-sm" onClick={() => addListItem('projects', { name: '', description: '', tech_stack: [], link: '' })}><Plus size={14} /> Add</button>
                   </div>
-                  {(resume.projects || []).length === 0 && <p className="text-gray-500 text-sm text-center py-4">No projects yet</p>}
+                  {(resume.projects || []).length === 0 && <p className="rounded-lg border border-dashed border-[var(--line-strong)] py-8 text-center text-[13px] text-gray-500">No projects yet</p>}
                   {(resume.projects || []).map((proj, i) => (
-                    <div key={i} className="bg-white/5 rounded-xl p-4 space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-white text-sm font-medium">Project #{i + 1}</span>
-                        <button onClick={() => removeListItem('projects', i)} className="text-red-400 text-xs hover:text-red-300">Remove</button>
-                      </div>
+                    <Entry key={i} title={`Project ${i + 1}`} onRemove={() => removeListItem('projects', i)}>
                       <div className="space-y-3">
                         <div>
                           <label className="form-label">Project Name</label>
-                          <input className="input-field" placeholder="HireEasy, SmartCV..." value={proj.name || ''} onChange={(e) => updateListItem('projects', i, 'name', e.target.value)} />
+                          <input className="input-field" placeholder="Project name" value={proj.name || ''} onChange={(e) => updateListItem('projects', i, 'name', e.target.value)} />
                         </div>
                         <div>
                           <label className="form-label">Tech Stack (comma-separated)</label>
-                          <input className="input-field" placeholder="React, Node.js, MongoDB" value={(proj.tech_stack || []).join(', ')} onChange={(e) => updateListItem('projects', i, 'tech_stack', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} />
+                          <ListInput className="input-field" placeholder="React, Node.js, MongoDB" value={proj.tech_stack || []} onChange={(list) => updateListItem('projects', i, 'tech_stack', list)} />
                         </div>
                         <div>
                           <label className="form-label">Description</label>
@@ -299,15 +287,14 @@ export default function ResumeBuilder() {
                           <input className="input-field" placeholder="https://github.com/..." value={proj.link || ''} onChange={(e) => updateListItem('projects', i, 'link', e.target.value)} />
                         </div>
                       </div>
-                    </div>
+                    </Entry>
                   ))}
                 </>
               )}
 
               {step === 'skills' && (
                 <>
-                  <h3 className="flex items-center gap-2 text-white font-semibold mb-3">
-                    <Zap size={18} className="text-yellow-400" /> Skills
+                  <h3 className="section-title mb-3">Skills
                   </h3>
                   {[
                     { key: 'technical', label: 'Technical Skills', placeholder: 'Python, React, Node.js, MongoDB, AWS...' },
@@ -317,13 +304,13 @@ export default function ResumeBuilder() {
                   ].map(({ key, label, placeholder }) => (
                     <div key={key}>
                       <label className="form-label">{label}</label>
-                      <input className="input-field" placeholder={placeholder}
-                        value={(resume.skills?.[key] || []).join(', ')}
-                        onChange={(e) => updateSkills(key, e.target.value)} />
+                      <ListInput className="input-field" placeholder={placeholder}
+                        value={resume.skills?.[key] || []}
+                        onChange={(list) => updateSkills(key, list)} />
                       {(resume.skills?.[key] || []).length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {resume.skills[key].map((s, i) => (
-                            <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/20">{s}</span>
+                            <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-700 border border-purple-500/20">{s}</span>
                           ))}
                         </div>
                       )}
@@ -335,18 +322,13 @@ export default function ResumeBuilder() {
               {step === 'certifications' && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="flex items-center gap-2 text-white font-semibold">
-                      <Award size={18} className="text-green-400" /> Certifications
+                    <h3 className="section-title">Certifications
                     </h3>
-                    <button className="btn-secondary text-xs" onClick={() => addListItem('certifications', { name: '', issuer: '', year: '', link: '' })}>+ Add</button>
+                    <button type="button" className="btn-secondary btn-sm" onClick={() => addListItem('certifications', { name: '', issuer: '', year: '', link: '' })}><Plus size={14} /> Add</button>
                   </div>
-                  {(resume.certifications || []).length === 0 && <p className="text-gray-500 text-sm text-center py-4">No certifications yet</p>}
+                  {(resume.certifications || []).length === 0 && <p className="rounded-lg border border-dashed border-[var(--line-strong)] py-8 text-center text-[13px] text-gray-500">No certifications yet</p>}
                   {(resume.certifications || []).map((cert, i) => (
-                    <div key={i} className="bg-white/5 rounded-xl p-4 space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-white text-sm font-medium">Cert #{i + 1}</span>
-                        <button onClick={() => removeListItem('certifications', i)} className="text-red-400 text-xs hover:text-red-300">Remove</button>
-                      </div>
+                    <Entry key={i} title={`Cert ${i + 1}`} onRemove={() => removeListItem('certifications', i)}>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="col-span-2">
                           <label className="form-label">Certificate Name</label>
@@ -365,7 +347,7 @@ export default function ResumeBuilder() {
                           <input className="input-field" placeholder="https://credly.com/..." value={cert.link || ''} onChange={(e) => updateListItem('certifications', i, 'link', e.target.value)} />
                         </div>
                       </div>
-                    </div>
+                    </Entry>
                   ))}
                 </>
               )}
@@ -375,8 +357,8 @@ export default function ResumeBuilder() {
           {/* Right: Live Preview */}
           <div className={`${showPreview ? 'flex-1' : 'hidden lg:block lg:w-1/2'}`}>
             <div className="sticky top-20">
-              <div className="text-xs text-gray-500 text-center mb-2">Live Preview</div>
-              <div className="rounded-xl overflow-hidden border border-white/10 shadow-2xl" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+              <p className="eyebrow mb-2">Preview · A4</p>
+              <div className="overflow-hidden rounded-lg border border-[var(--line)] bg-white" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                 <div ref={printRef}>
                   <ResumePreview resume={resume} />
                 </div>

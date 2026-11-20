@@ -7,14 +7,7 @@ const User = require('../models/User');
 const JobCache = require('../models/JobCache');
 const { sendJobAlertEmail, sendWhatsAppAlert, sendInterviewReminder } = require('./alertService');
 
-// TF-IDF match scorer (reuse from jobs route)
-function scoreJob(userSkills, job) {
-  if (!userSkills?.length) return 0;
-  const text = [job.title, job.company, ...(job.tags || []), job.description || '']
-    .join(' ').toLowerCase();
-  const matches = userSkills.filter((s) => text.includes(s.toLowerCase()));
-  return Math.round((matches.length / userSkills.length) * 100);
-}
+const { scoreJob } = require('./scorer');
 
 // ── Daily job digest — 9 AM IST (3:30 AM UTC) ────────────────────────────────
 cron.schedule('30 3 * * *', async () => {
@@ -26,16 +19,16 @@ cron.schedule('30 3 * * *', async () => {
       skills: { $exists: true, $not: { $size: 0 } },
     });
 
+    const recentJobs = await JobCache.find({
+      expires_at: { $gt: new Date() },
+    }).sort({ posted_at: -1 }).limit(200).lean();
+
     for (const user of users) {
       try {
-        // Get top 10 most recent jobs, score them
-        const recentJobs = await JobCache.find({
-          expires_at: { $gt: new Date() },
-        }).sort({ posted_at: -1 }).limit(200).lean();
 
         const scored = recentJobs
           .map((j) => ({ ...j, matchScore: scoreJob(user.skills, j) }))
-          .filter((j) => j.matchScore >= 40) // Only good matches
+          .filter((j) => j.matchScore !== null && j.matchScore >= 40) // Only good matches
           .sort((a, b) => b.matchScore - a.matchScore)
           .slice(0, 8);
 
@@ -45,7 +38,7 @@ cron.schedule('30 3 * * *', async () => {
         await sendJobAlertEmail(user, scored);
 
         // WhatsApp alert (if enabled & phone exists)
-        if (user.alert_preferences?.whatsapp_alerts && user.contact) {
+        if (user.alert_preferences?.whatsapp_alerts && (user.phone || user.contact)) {
           await sendWhatsAppAlert(user, scored.slice(0, 5));
         }
       } catch (err) {
